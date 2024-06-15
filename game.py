@@ -1,5 +1,7 @@
 import pygame
 import pygame.freetype
+
+from scripts.tilemap import TileMap
 from scripts.entities.player import Player
 
 
@@ -18,6 +20,8 @@ class Game:
         self.player = Player()
         self.active_sprite_list.add(self.player)
 
+        self.tile_map = TileMap(self)
+
     def run(self):
         running = True
         clock = pygame.time.Clock()
@@ -31,6 +35,9 @@ class Game:
             self.active_sprite_list.update()
             self.active_sprite_list.draw(self.screen)
 
+            self.tile_map.update()
+
+            self.tile_map.render(self.screen)
             self.font.render_to(self.screen, [20, 20], "Mario Pygame", (255, 255, 255))
 
             pygame.display.update()

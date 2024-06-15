@@ -4,6 +4,7 @@ import pygame
 import pygame.freetype
 import json
 import datetime
+
 from scripts.utils.color import hsl_to_rgb
 
 
@@ -87,7 +88,7 @@ class EditorTileMap:
         f.close()
 
     def open(self, name):
-        with open(f'./assets/worlds/{name}.json', 'a+') as f:
+        with open(f'./assets/worlds/{name}.json', 'r') as f:
             print(f'./assets/worlds/{name}.json')
             f.seek(0)
 
@@ -189,9 +190,6 @@ class EditorTileMap:
 class Editor:
     def __init__(self):
         pygame.init()
-        pygame.font.init()
-
-        pygame.display.set_caption('Mario Pygame')
         self.screen = pygame.display.set_mode([1000, 800])
         self.font = pygame.freetype.SysFont("roboto", 24)
         self.dt = None
