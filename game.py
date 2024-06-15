@@ -32,13 +32,14 @@ class Game:
                 if event.type == pygame.QUIT:
                     running = False
 
-            self.active_sprite_list.update()
-            self.active_sprite_list.draw(self.screen)
+            self.screen.fill((0, 0, 0))
 
+            self.active_sprite_list.update()
             self.tile_map.update()
 
             self.tile_map.render(self.screen)
-            self.font.render_to(self.screen, [20, 20], "Mario Pygame", (255, 255, 255))
+            self.active_sprite_list.draw(self.screen)
+            self.font.render_to(self.screen, [20, 20], "Mario Pygame Beta 0.0.1", (255, 255, 255))
 
             pygame.display.update()
 

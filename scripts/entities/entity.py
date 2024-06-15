@@ -6,3 +6,9 @@ class Entity(pygame.sprite.Sprite):
         super().__init__()
 
         pass
+
+    def move(self):
+        pass
+
+    def update(self):
+        self.move()
