@@ -3,6 +3,7 @@ import os
 import pygame
 import pygame.freetype
 import json
+import datetime
 from scripts.utils.color import hsl_to_rgb
 
 
@@ -23,12 +24,6 @@ class Tile(pygame.sprite.Sprite):
         self.tags = tags
 
 
-        def event_check(event, pos):
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.rect.collidepoint(pos):
-                    self.kill()
-
-        tilemap.game.event_check.append(event_check)
 
     def update(self):
         self.offset = self.tilemap.offset
@@ -36,6 +31,13 @@ class Tile(pygame.sprite.Sprite):
         self.rect.y = (self.y * self.size)
 
         self.image.fill(self.fill)
+
+        pos = pygame.mouse.get_pos()
+        mouse = pygame.mouse.get_pressed()
+
+        if mouse[0] and self.tilemap.erase_mode:
+            if self.rect.collidepoint(pos):
+                self.kill()
 
 
 class EditorTileMap:
@@ -57,15 +59,19 @@ class EditorTileMap:
 
         self.color_id = 0
 
+        self.erase_mode = False
+        self.last_saved = None
+
         self.open(name)
 
     def save(self, name):
         os.makedirs(f'./assets/worlds/', exist_ok=True)
-        f = open(f'./assets/worlds/{name}.json', 'a+')
+        f = open(f'./assets/worlds/{name}.json', 'w')
         try:
             data = json.load(f)
         except:
             data = {}
+
         data["tile_size"] = self.tile_size
 
         world = []
@@ -76,6 +82,7 @@ class EditorTileMap:
         data["world"] = world
 
         print(data)
+        self.last_saved = datetime.datetime.now().strftime("%H:%M:%S")
         json.dump([data], f)
         f.close()
 
@@ -117,11 +124,14 @@ class EditorTileMap:
         if self.color_id == 24:
             self.color_id = 0
 
-        x = hsl_to_rgb((self.color_id * 30) / 360, 0.3, 0.6)
+        x = hsl_to_rgb((self.color_id * 30) / 360, 0.5, 0.6)
         #print(f"RGB values: {x[0] * 255}, {x[1] * 255}, {x[2] * 255}")
         color = pygame.Color(int(x[0] * 255), int(x[1] * 255), int(x[2] * 255))
         #print(f"Color value: {color}")
         #print(f"Color ID: {self.color_id}")
+
+        if self.erase_mode:
+            color = (0, 0, 0)
 
         if key[pygame.K_LEFT]:
             self.offset -= self.tile_size / 2
@@ -139,16 +149,20 @@ class EditorTileMap:
             name = input("Enter the name of the world: ")
             self.open(name)
 
+        if key_just[pygame.K_e]:
+            self.erase_mode = not self.erase_mode
+
         if self.game.screen.get_height() != self.window_height or self.game.screen.get_width() != self.window_width:
             self.window_height = self.game.screen.get_height()
             self.window_width = self.game.screen.get_width()
             self.world_height = round(self.window_height / (self.tile_size * self.scale))
             self.world_width = round(self.window_width / (self.tile_size * self.scale))
 
-        if mouse[0]:
+        if mouse[0] and not self.erase_mode:
             self.tiles.add(Tile(self, (pos[0] - self.offset) // (self.tile_size * self.scale),
                                 pos[1] // (self.tile_size * self.scale),
                                 self.scale, color))
+
 
         tile_cursor = Tile(self, (pos[0] - self.offset) // (self.tile_size * self.scale), pos[1] //
                            (self.tile_size * self.scale), self.scale, color)
@@ -161,8 +175,16 @@ class EditorTileMap:
     def render(self, screen: pygame.Surface):
         self.tiles.draw(screen)
         self.game.screen.blit(self.cursor.image, [self.cursor.rect.x, self.cursor.rect.y])
-        self.game.font.render_to(screen, (10, 10), f"World Name: {self.world_name}", (255, 255, 255))
+        self.game.font.render_to(screen, (10, 10), f"World File: {self.world_name}.json", (255, 255, 255))
 
+        if self.erase_mode:
+            self.game.font.render_to(screen, (10, 40), f"ERASE", (255, 0, 0))
+
+        if self.last_saved:
+            text = f"Last saved {self.last_saved}"
+            text_surface, text_rect = self.game.font.render(text, (0, 0, 0))
+            x_position = self.game.screen.get_width() - text_rect.width - 10
+            self.game.font.render_to(screen, (x_position, 10), text, (255, 255, 255))
 
 class Editor:
     def __init__(self):
