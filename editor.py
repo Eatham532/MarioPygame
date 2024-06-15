@@ -88,7 +88,7 @@ class EditorTileMap:
         f.close()
 
     def open(self, name):
-        with open(f'./assets/worlds/{name}.json', 'r') as f:
+        with open(f'./assets/worlds/{name}.json', 'a+') as f:
             print(f'./assets/worlds/{name}.json')
             f.seek(0)
 

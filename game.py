@@ -17,7 +17,7 @@ class Game:
         self.active_sprite_list = pygame.sprite.Group()
 
         self.clock = pygame.time.Clock()
-        self.player = Player()
+        self.player = Player(self)
         self.active_sprite_list.add(self.player)
 
         self.tile_map = TileMap(self)
