@@ -16,8 +16,8 @@ class Player(Entity):
         self.speed = speed
 
         self.vel_y = 0
-        self.max_vel_y = speed * 1.5
-        self.gravity = speed * 1.5
+        self.max_vel_y = speed * 2
+        self.gravity = speed * 2
         self.is_jumping = False
         self.jump_start = 0
         self.jump_duration = 0
@@ -28,7 +28,7 @@ class Player(Entity):
     def jump(self):
         if not self.is_jumping:
             self.is_jumping = True
-            self.vel_y = -self.max_vel_y / 2
+            self.vel_y = -self.max_vel_y
             self.jump_start = pygame.time.get_ticks()
 
 
@@ -54,8 +54,12 @@ class Player(Entity):
         if self.is_jumping and self.jump_duration < self.jump_max_duration:
             self.jump_duration = pygame.time.get_ticks() - self.jump_start
 
-            if (key[pygame.K_SPACE] or key[pygame.K_UP]) and self.jump_duration < self.jump_max_duration / 2:
-                self.vel_y -= self.max_vel_y / 10
+            if (key[pygame.K_SPACE] or key[pygame.K_UP]):
+                if self.jump_duration < self.jump_max_duration / 2:
+                    self.vel_y += self.max_vel_y / 20
+            else:
+                self.jump_duration *= 2
+
 
             if self.vel_y >= self.max_vel_y:
                 self.vel_y = self.max_vel_y
