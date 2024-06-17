@@ -9,7 +9,7 @@ from scripts.utils.color import hsl_to_rgb
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tilemap, x, y, scale, color=(255, 0, 0), tags=[]):
+    def __init__(self, tilemap, x, y, scale, color=(255, 0, 0), id=0, tags=[],):
         super().__init__()
 
         self.tilemap = tilemap
@@ -22,7 +22,21 @@ class Tile(pygame.sprite.Sprite):
         self.offset = tilemap.offset
         self.x = x
         self.y = y
+
+        self.id = id
+
+        self.cursor = "cursor" in tags
+        if self.cursor:
+            tags.remove("cursor")
+
+
         self.tags = tags
+
+        self.has_init = False
+
+        for sprite in tilemap.tiles:
+            if sprite.x == x and sprite.y == y and not self.cursor and not sprite.cursor and sprite.id != self.id:
+                sprite.kill()
 
 
 
@@ -36,9 +50,12 @@ class Tile(pygame.sprite.Sprite):
         pos = pygame.mouse.get_pos()
         mouse = pygame.mouse.get_pressed()
 
-        if mouse[0] and self.tilemap.erase_mode:
+        if mouse[0] and not self.cursor and self.has_init:
             if self.rect.collidepoint(pos):
                 self.kill()
+
+        self.has_init = True
+
 
 
 class EditorTileMap:
@@ -62,6 +79,8 @@ class EditorTileMap:
 
         self.erase_mode = False
         self.last_saved = None
+
+        self._tile_id = 0
 
         self.open(name)
 
@@ -109,7 +128,8 @@ class EditorTileMap:
             self.tiles.empty()
 
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["color"]))
+                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["color"], self._tile_id))
+                self._tile_id += 1
 
             print(f"Loaded world: {name}")
             print(f"Tile count: {len(self.tiles)}")
@@ -122,14 +142,34 @@ class EditorTileMap:
         mouse = pygame.mouse.get_pressed()
         pos = pygame.mouse.get_pos()
 
+        x = (pos[0] - self.offset) // (self.tile_size * self.scale)
+        y = pos[1] // (self.tile_size * self.scale)
+
         if self.color_id == 24:
             self.color_id = 0
 
-        x = hsl_to_rgb((self.color_id * 30) / 360, 0.5, 0.6)
+        c = hsl_to_rgb((self.color_id * 30) / 360, 0.5, 0.6)
         #print(f"RGB values: {x[0] * 255}, {x[1] * 255}, {x[2] * 255}")
-        color = pygame.Color(int(x[0] * 255), int(x[1] * 255), int(x[2] * 255))
+        color = pygame.Color(int(c[0] * 255), int(c[1] * 255), int(c[2] * 255))
         #print(f"Color value: {color}")
         #print(f"Color ID: {self.color_id}")
+
+        def detect_scroll(event, mouse_pos):
+            shift = pygame.key.get_pressed()[pygame.K_LSHIFT]
+            if event.type == pygame.MOUSEWHEEL:
+                if event.y > 0:  # Scroll Up
+                    if shift:
+                        print("SHIFT")
+                        self.offset -= 1
+                    else:
+                        self.offset -= 0.2
+                elif event.y < 0:  # Scroll Down
+                    if shift:
+                        self.offset += 1
+                    else:
+                        self.offset += 0.2
+
+        self.game.event_check.append(detect_scroll)
 
         if self.erase_mode:
             color = (0, 0, 0)
@@ -159,16 +199,13 @@ class EditorTileMap:
             self.world_height = round(self.window_height / (self.tile_size * self.scale))
             self.world_width = round(self.window_width / (self.tile_size * self.scale))
 
+
         if mouse[0] and not self.erase_mode:
-            self.tiles.add(Tile(self, (pos[0] - self.offset) // (self.tile_size * self.scale),
-                                pos[1] // (self.tile_size * self.scale),
-                                self.scale, color))
+            self.tiles.add(Tile(self, x, y, self.scale, color, self._tile_id))
+            self._tile_id += 1
 
-
-        tile_cursor = Tile(self, (pos[0] - self.offset) // (self.tile_size * self.scale), pos[1] //
-                           (self.tile_size * self.scale), self.scale, color)
+        tile_cursor = Tile(self, x, y, self.scale, color, -1,["cursor"])
         tile_cursor.update()
-
         self.cursor = tile_cursor
 
         self.tiles.update()
