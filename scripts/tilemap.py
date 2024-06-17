@@ -2,32 +2,39 @@ import pygame
 import json
 import random
 
+from scripts.entities.player import Player
 from scripts.entities.tile import Tile
 
 
 class TileMap(pygame.sprite.Group):
-    def __init__(self, game, tile_size = 16, length = 10, name = "world"):
+    def __init__(self, game, tile_size=16):
         super().__init__()
 
         self.tile_size = tile_size
-        self.selected_tile = (0, 0)
         self.offset = 0
-        self.game = game
 
+        # The scale of the tiles
         self.scale = 3
-        self.window_height = self.game.screen.get_height()
-        self.window_width = self.game.screen.get_width()
+
+        # Basic stuff
+        self.window_height = game.screen.get_height()
+        self.window_width = game.screen.get_width()
         self.world_height = round(self.window_height / (self.tile_size * self.scale))
         self.world_width = round(self.window_width / (self.tile_size * self.scale))
-        self.world_name = name
+        self.world_name = ""  # The name of the world. Used for getting the saved world
 
+        # The tiles
         self.tiles = pygame.sprite.Group()
+        self.player = Player(game)
+        game.active_sprite_list.add(self.player)
 
-        self.open(name)
+        # Debugging
+        self.outline_tiles = False
+
+        self.game = game
 
     def update(self):
         self.tiles.update()
-
 
 
     def render(self, screen):
@@ -36,7 +43,7 @@ class TileMap(pygame.sprite.Group):
 
     def open(self, name):
         with open(f'./assets/worlds/{name}.json', 'r') as f:
-            print(f'./assets/worlds/{name}.json')
+            print(f'Opening {name} from ./assets/worlds/{name}.json')
             f.seek(0)
 
             try:
@@ -53,14 +60,17 @@ class TileMap(pygame.sprite.Group):
 
             self.tile_size = data["tile_size"]
 
+            # Create the game
             self.tiles.empty()
-
             for tile in data["world"]:
                 self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["color"]))
+
+            self.player.__init__(self.game)
 
             print(f"Loaded world: {name}")
             print(f"Tile count: {len(self.tiles)}")
             self.world_name = name
+            self.offset = 0
             f.close()
 
     def generate_world(self):

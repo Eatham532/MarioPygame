@@ -1,20 +1,25 @@
 import pygame
+
 from scripts.entities.entity import Entity
 
 
 class Player(Entity):
     def __init__(self, game, speed=10):
         super().__init__()
+
+        # Sprite
         width = 60
         height = 60
         self.image = pygame.Surface([width, height])
         self.image.fill((255, 0, 0))
 
+        # Movement
         self.rect = self.image.get_rect()
         self.rect.x = 400
         self.rect.y = 300
         self.speed = speed
 
+        # Jumping
         self.vel_y = 0
         self.max_vel_y = speed * 2
         self.gravity = speed * 2
@@ -87,6 +92,9 @@ class Player(Entity):
         if self.rect.x < self.speed * 3:
             self.game.tile_map.offset += self.speed
             self.rect.x += self.speed
+
+        if self.rect.y > self.game.tile_map.window_height:
+            self.game.set_game_state(3)
 
 
 
