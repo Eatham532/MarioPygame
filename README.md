@@ -13,7 +13,7 @@ This project was made for my Software Engineering Project in 2024
 ## Controls
 ### Editor
 - `Left Click` to place a cube
-- `Right Click` to remove a cube
+- `E` to enable erase mode. Use `Left Click` to erase cubes
 - `S` to save the level
 - `O` to open a level. Use the python terminal to input the level name
 - `Space` to change the cube color
