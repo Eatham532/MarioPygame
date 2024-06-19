@@ -58,7 +58,7 @@ class Player(Entity):
             if tile.property == "hazard":
                 self.game.set_game_state(3)
 
-            if tile.property == "water":
+            if tile.property == "water" or tile.property == "background":
                 continue
 
             if dx < 0:
@@ -104,6 +104,9 @@ class Player(Entity):
         for tile in self.check_collisions():
             if tile.property == "hazard":
                 self.game.set_game_state(3)
+
+            if tile.property == "background":
+                continue
 
             if tile.property == "water":
                 touching_water = True

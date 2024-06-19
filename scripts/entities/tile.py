@@ -24,7 +24,6 @@ class Tile(pygame.sprite.Sprite):
         self.size = tilemap.tile_size * self.scale
         self.image = pygame.Surface([self.size, self.size])
         self.rect = self.image.get_rect()
-        self.offset = tilemap.offset
         self.x = x
         self.y = y
         self.property = p
@@ -38,12 +37,13 @@ class Tile(pygame.sprite.Sprite):
         self.sheet_location = sheet_location
         self.sheet_name = sheet_name
 
+        self.rect.y = (self.y * self.size)
+
 
 
     def update(self):
-        self.offset = self.tilemap.offset
-        self.rect.x = (self.x * self.size) + self.offset
-        self.rect.y = (self.y * self.size)
+        offset = self.tilemap.offset
+        self.rect.x = (self.x * self.size) + offset
 
         tile_size = 16
         self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
