@@ -1,4 +1,5 @@
 import os
+import time
 from enum import Enum
 
 import pygame
@@ -33,7 +34,6 @@ class Game:
         }
 
         self.active_sprite_list = pygame.sprite.Group()
-
 
         self.clock = pygame.time.Clock()
 
@@ -83,6 +83,7 @@ class Game:
             elif self.game_state == GameState.PLAYING:
                 self.active_sprite_list.update()
                 self.tile_map.update()
+
 
             if self.game_state == GameState.PLAYING or self.game_state == GameState.PAUSED:
                 self.tile_map.render(self.screen)

@@ -56,9 +56,9 @@ class Tile(pygame.sprite.Sprite):
 
         tile_size = 16
 
-        if self.tilemap.erase_mode and self.cursor:
-            self.image.fill((0, 0, 0))
-        elif self.tilemap.property_mode:
+        self.image.fill((0, 0, 0))
+
+        if self.tilemap.property_mode:
             match self.property:
                 case "solid":
                     self.image.fill((0, 255, 0))
@@ -169,7 +169,7 @@ class EditorTileMap:
             self.tiles.empty()
 
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["property"], self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"], self._tile_id))
+                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["props"], self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"], self._tile_id))
                 self._tile_id += 1
 
             print(f"Loaded world: {name}")
@@ -231,7 +231,7 @@ class EditorTileMap:
                 for sprite in pygame.sprite.spritecollide(self.cursor, self.tiles, False):
                     if sprite.cursor or not isinstance(sprite, Tile):
                         continue
-                    self.selected_tile = sprite.sheet_location
+                    self.selected_tile = [sprite.sheet_location[0], sprite.sheet_location[1]]
                     self.chosen_property_index = available_props.index(sprite.property)
 
         if self.property_mode:

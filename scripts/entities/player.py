@@ -22,70 +22,103 @@ class Player(Entity):
         # Jumping
         self.vel_y = 0
         self.max_vel_y = speed * 2
-        self.gravity = speed * 2
+        self.gravity = speed * 1.5
         self.is_jumping = False
         self.jump_start = 0
         self.jump_duration = 0
         self.jump_max_duration = 200
+        self.in_water = False
 
         self.game = game
 
     def jump(self):
-        if not self.is_jumping:
+        if not self.is_jumping or self.in_water:
             self.is_jumping = True
             self.vel_y = -self.max_vel_y
             self.jump_start = pygame.time.get_ticks()
 
 
+    # TODO: Bug when swimming
     def update(self):
         key = pygame.key.get_pressed()
         key_up = pygame.key.get_just_released()
         key_down = pygame.key.get_just_pressed()
 
-        if key[pygame.K_LEFT]:
-            self.rect.x -= self.speed
-            for tile in self.collides_with_tiles():
-                self.rect.x = tile.rect.x + self.colliding_tile.rect.width
-                break
+        if self.in_water:
+            self.vel_y = -self.speed
+            self.gravity = self.speed * 0.2
 
-        if key[pygame.K_RIGHT]:
-            self.rect.x += self.speed
-            for tile in self.collides_with_tiles():
+        else:
+            self.max_vel_y = self.speed * 2
+            self.gravity = self.speed * 1.5
+
+        dx = -self.speed if key[pygame.K_LEFT] else self.speed if key[pygame.K_RIGHT] else 0
+        self.rect.x += dx
+        for tile in self.check_collisions():
+            if tile.property == "hazard":
+                self.game.set_game_state(3)
+
+            if tile.property == "water":
+                continue
+
+            if dx < 0:
+                self.rect.x = tile.rect.x + tile.rect.width
+            elif dx > 0:
                 self.rect.x = tile.rect.x - self.rect.width
-                break
 
-        if (key_down[pygame.K_SPACE] or key_down[pygame.K_UP]) and self.jump_duration < self.jump_max_duration:
+
+        if (key_down[pygame.K_SPACE] or key_down[pygame.K_UP]) and (
+                self.jump_duration < self.jump_max_duration or self.in_water):
             self.jump()
 
 
-        if self.is_jumping and self.jump_duration < self.jump_max_duration:
+        if (self.is_jumping and self.jump_duration < self.jump_max_duration):
             self.jump_duration = pygame.time.get_ticks() - self.jump_start
 
-            if (key[pygame.K_SPACE] or key[pygame.K_UP]):
+            if key[pygame.K_SPACE] or key[pygame.K_UP]:
                 if self.jump_duration < self.jump_max_duration / 2:
                     self.vel_y += self.max_vel_y / 20
+
             else:
                 self.jump_duration *= 2
-
 
             if self.vel_y >= self.max_vel_y:
                 self.vel_y = self.max_vel_y
 
-
-
             self.rect.y += self.vel_y
-
-            for tile in self.collides_with_tiles():
-                self.rect.y = tile.rect.y + tile.rect.height
-                self.jump_duration = self.jump_max_duration
         else:
+            if self.in_water and self.jump_duration > self.jump_max_duration:
+                self.is_jumping = False
+                self.jump_duration = 0
+
+                # if key[pygame.K_SPACE] or key[pygame.K_UP]:
+                #     self.jump()
+
             self.vel_y = 0
             self.rect.y += self.gravity
 
-        for tile in self.collides_with_tiles():
-            self.rect.y = tile.rect.y - self.rect.height
-            self.is_jumping = False
-            self.jump_duration = 0
+        if key[pygame.K_DOWN]:
+            self.rect.y += self.gravity * 1.5
+
+        touching_water = False
+        for tile in self.check_collisions():
+            if tile.property == "hazard":
+                self.game.set_game_state(3)
+
+            if tile.property == "water":
+                touching_water = True
+                continue
+
+            if self.vel_y > 0:
+                self.rect.y = tile.rect.y + tile.rect.height
+                self.jump_duration = self.jump_max_duration
+
+            else:
+                self.rect.y = tile.rect.y - self.rect.height
+                self.is_jumping = False
+                self.jump_duration = 0
+
+        self.in_water = touching_water
 
         if self.rect.x > (self.game.tile_map.window_width / 2):
             self.game.tile_map.offset -= self.speed
@@ -101,15 +134,13 @@ class Player(Entity):
         if key[pygame.K_k]:
             self.game.set_game_state(3)
 
-    def collides_with_tiles(self):
+    def check_collisions(self):
         def check_property(tile):
-            if tile.property == "solid":
+            if tile.property in ["solid", "hazard", "water"]:
+                if tile.property == "hazard":
+                    self.game.set_game_state(3)
                 return True
-            elif tile.property == "hazard":
-                self.game.set_game_state(3)
-                return False
             return False
 
-
         tiles = pygame.sprite.spritecollide(self, self.game.tile_map.tiles, False)
-        return filter(check_property, tiles)
+        return tiles
