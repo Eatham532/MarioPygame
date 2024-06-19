@@ -54,7 +54,8 @@ class Tile(pygame.sprite.Sprite):
             if self.rect.collidepoint(pos):
                 self.kill()
 
-        self.has_init = True
+        if not mouse[0] and not self.has_init:
+            self.has_init = True
 
 
 
@@ -157,13 +158,12 @@ class EditorTileMap:
         def detect_scroll(event, mouse_pos):
             shift = pygame.key.get_pressed()[pygame.K_LSHIFT]
             if event.type == pygame.MOUSEWHEEL:
-                if event.y > 0:  # Scroll Up
+                if event.y > 0 or event.x > 0:  # Scroll Up
                     if shift:
-                        print("SHIFT")
                         self.offset -= 1
                     else:
                         self.offset -= 0.2
-                elif event.y < 0:  # Scroll Down
+                elif event.y < 0 or event.x < 0:  # Scroll Down
                     if shift:
                         self.offset += 1
                     else:
