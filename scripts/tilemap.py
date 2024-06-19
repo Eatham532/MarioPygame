@@ -1,3 +1,5 @@
+import os
+
 import pygame
 import json
 import random
@@ -31,6 +33,17 @@ class TileMap(pygame.sprite.Group):
         # Debugging
         self.outline_tiles = False
 
+        tilesheets_path = "./assets/tilesheets"
+
+        files = os.listdir(tilesheets_path)
+        self.tilesheets = {}
+        for file in files:
+            if file.endswith(".png"):
+                path = os.path.join(tilesheets_path, file)
+                image = pygame.image.load(path)
+                scaled_image = pygame.transform.scale_by(image, self.scale)
+                self.tilesheets[file.strip(".png")] = scaled_image
+
         self.game = game
 
     def update(self):
@@ -63,7 +76,7 @@ class TileMap(pygame.sprite.Group):
             # Create the game
             self.tiles.empty()
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["color"]))
+                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"]))
 
             self.player.__init__(self.game)
 

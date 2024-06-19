@@ -9,21 +9,28 @@ from scripts.utils.color import hsl_to_rgb
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tilemap, x, y, scale, color=(255, 0, 0), id=0, tags=[],):
+    def __init__(self, tilemap, x, y, scale, sheet_image, sheet_name, sheet_location=None, id=0, tags=[], ):
         super().__init__()
 
         self.tilemap = tilemap
         self.scale = scale
         self.size = tilemap.tile_size * self.scale
         self.image = pygame.Surface([self.size, self.size])
-        self.fill = color
-        self.image.fill(self.fill)
+
         self.rect = self.image.get_rect()
         self.offset = tilemap.offset
         self.x = x
         self.y = y
 
         self.id = id
+
+        if sheet_location is None:
+            sheet_location = [0, 0]
+        else: sheet_location = [sheet_location[0], sheet_location[1]]
+
+        self.sheet_image = sheet_image
+        self.sheet_location = sheet_location
+        self.sheet_name = sheet_name
 
         self.cursor = "cursor" in tags
         if self.cursor:
@@ -45,7 +52,13 @@ class Tile(pygame.sprite.Sprite):
         self.rect.x = (self.x * self.size) + self.offset
         self.rect.y = (self.y * self.size)
 
-        self.image.fill(self.fill)
+        tile_size = 16
+
+        if self.tilemap.erase_mode and self.cursor:
+            self.image.fill((0, 0, 0))
+        else:
+            self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
+                                                       self.sheet_location[1] * tile_size * self.scale, self.size, self.size))
 
         pos = pygame.mouse.get_pos()
         mouse = pygame.mouse.get_pressed()
@@ -60,9 +73,8 @@ class Tile(pygame.sprite.Sprite):
 
 
 class EditorTileMap:
-    def __init__(self, game, tile_size=16, name="world"):
+    def __init__(self, game, tile_size=16, name="world", tilesheets_path="./assets/tilesheets/"):
         self.tile_size = tile_size
-        self.selected_tile = (0, 0)
         self.offset = 0
         self.game = game
 
@@ -76,7 +88,17 @@ class EditorTileMap:
         self.tiles = pygame.sprite.Group()
         self.cursor = None
 
-        self.color_id = 0
+        files = os.listdir(tilesheets_path)
+        self.tilesheets = {}
+        for file in files:
+            if file.endswith(".png"):
+                path = os.path.join(tilesheets_path, file)
+                image = pygame.image.load(path)
+                scaled_image = pygame.transform.scale_by(image, self.scale)
+                self.tilesheets[file.strip(".png")] = scaled_image
+
+        self.selected_sheet = list(self.tilesheets.keys())[0]
+        self.selected_tile = [0, 0]
 
         self.erase_mode = False
         self.last_saved = None
@@ -98,7 +120,7 @@ class EditorTileMap:
         world = []
 
         for tile in self.tiles:
-            world.append({"x": tile.x, "y": tile.y, "color": (tile.fill[0], tile.fill[1], tile.fill[2])})
+            world.append({"x": tile.x, "y": tile.y, "sheet_name": tile.sheet_name, "sheet_pos": tile.sheet_location})
 
         data["world"] = world
 
@@ -129,7 +151,7 @@ class EditorTileMap:
             self.tiles.empty()
 
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["color"], self._tile_id))
+                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"], self._tile_id))
                 self._tile_id += 1
 
             print(f"Loaded world: {name}")
@@ -146,17 +168,9 @@ class EditorTileMap:
         x = (pos[0] - self.offset) // (self.tile_size * self.scale)
         y = pos[1] // (self.tile_size * self.scale)
 
-        if self.color_id == 24:
-            self.color_id = 0
-
-        c = hsl_to_rgb((self.color_id * 30) / 360, 0.5, 0.6)
-        #print(f"RGB values: {x[0] * 255}, {x[1] * 255}, {x[2] * 255}")
-        color = pygame.Color(int(c[0] * 255), int(c[1] * 255), int(c[2] * 255))
-        #print(f"Color value: {color}")
-        #print(f"Color ID: {self.color_id}")
-
         def detect_scroll(event, mouse_pos):
-            shift = pygame.key.get_pressed()[pygame.K_LSHIFT]
+            k = pygame.key.get_pressed()
+            shift = k[pygame.K_LSHIFT] or k[pygame.K_RSHIFT]
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0 or event.x > 0:  # Scroll Up
                     if shift:
@@ -172,7 +186,7 @@ class EditorTileMap:
         self.game.event_check.append(detect_scroll)
 
         if self.erase_mode:
-            color = (0, 0, 0)
+            pass
 
         if key[pygame.K_LEFT]:
             self.offset -= self.tile_size / 2
@@ -180,8 +194,21 @@ class EditorTileMap:
         if key[pygame.K_RIGHT]:
             self.offset += self.tile_size / 2
 
-        if key_just[pygame.K_SPACE]:
-            self.color_id += 1
+
+        shift_press = key[pygame.K_LSHIFT] or key[pygame.K_RSHIFT]
+        tile_shift = 0
+        if shift_press:
+            tile_shift = 1
+
+
+        if key_just[pygame.K_LEFTBRACKET]:
+            self.selected_tile[tile_shift] -= 1
+            if self.selected_tile[tile_shift] < 0:
+                self.selected_tile[tile_shift] = 0
+
+        if key_just[pygame.K_RIGHTBRACKET]:
+            self.selected_tile[tile_shift] += 1
+
 
         if key_just[pygame.K_s]:
             self.save(self.world_name)
@@ -201,10 +228,10 @@ class EditorTileMap:
 
 
         if mouse[0] and not self.erase_mode:
-            self.tiles.add(Tile(self, x, y, self.scale, color, self._tile_id))
+            self.tiles.add(Tile(self, x, y, self.scale, self.tilesheets[self.selected_sheet], self.selected_sheet, self.selected_tile, self._tile_id))
             self._tile_id += 1
 
-        tile_cursor = Tile(self, x, y, self.scale, color, -1,["cursor"])
+        tile_cursor = Tile(self, x, y, self.scale, self.tilesheets[self.selected_sheet], self.selected_sheet, self.selected_tile, -1,["cursor"])
         tile_cursor.update()
         self.cursor = tile_cursor
 
@@ -223,6 +250,7 @@ class EditorTileMap:
             text_surface, text_rect = self.game.font.render(text, (0, 0, 0))
             x_position = self.game.screen.get_width() - text_rect.width - 10
             self.game.font.render_to(screen, (x_position, 10), text, (255, 255, 255))
+
 
 class Editor:
     def __init__(self):
