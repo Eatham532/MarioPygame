@@ -76,7 +76,7 @@ class TileMap(pygame.sprite.Group):
             # Create the game
             self.tiles.empty()
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"]))
+                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["props"], self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"]))
 
             self.player.__init__(self.game)
 

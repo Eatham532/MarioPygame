@@ -16,7 +16,7 @@ def create_bordered_rect(width, height, border_thickness, fill_color, border_col
     return surf
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tilemap, x, y, scale, sheet_image, sheet_name, sheet_location=None, tags=[]):
+    def __init__(self, tilemap, x, y, scale, p, sheet_image, sheet_name, sheet_location=None, tags=[]):
         super().__init__()
 
         self.tilemap = tilemap
@@ -27,6 +27,7 @@ class Tile(pygame.sprite.Sprite):
         self.offset = tilemap.offset
         self.x = x
         self.y = y
+        self.property = p
         self.tags = tags
 
         if sheet_location is None:

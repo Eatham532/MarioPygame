@@ -7,15 +7,17 @@ import datetime
 
 from scripts.utils.color import hsl_to_rgb
 
+available_props = ["solid", "background", "hazard", "water"]
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tilemap, x, y, scale, sheet_image, sheet_name, sheet_location=None, id=0, tags=[], ):
+    def __init__(self, tilemap, x, y, scale, p, sheet_image, sheet_name, sheet_location=None, id=0, tags=[]):
         super().__init__()
 
         self.tilemap = tilemap
         self.scale = scale
         self.size = tilemap.tile_size * self.scale
         self.image = pygame.Surface([self.size, self.size])
+        self.property = p
 
         self.rect = self.image.get_rect()
         self.offset = tilemap.offset
@@ -56,6 +58,17 @@ class Tile(pygame.sprite.Sprite):
 
         if self.tilemap.erase_mode and self.cursor:
             self.image.fill((0, 0, 0))
+        elif self.tilemap.property_mode:
+            match self.property:
+                case "solid":
+                    self.image.fill((0, 255, 0))
+                case "background":
+                    self.image.fill((170, 50, 180))
+                case "hazard":
+                    self.image.fill((255, 0, 0))
+                case "water":
+                    self.image.fill((0, 0, 255))
+
         else:
             self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
                                                        self.sheet_location[1] * tile_size * self.scale, self.size, self.size))
@@ -65,7 +78,10 @@ class Tile(pygame.sprite.Sprite):
 
         if mouse[0] and not self.cursor and self.has_init:
             if self.rect.collidepoint(pos):
-                self.kill()
+                if self.tilemap.property_mode:
+                    self.property = available_props[self.tilemap.chosen_property_index]
+                else:
+                    self.kill()
 
         if not mouse[0] and not self.has_init:
             self.has_init = True
@@ -101,9 +117,11 @@ class EditorTileMap:
         self.selected_tile = [0, 0]
 
         self.erase_mode = False
+        self.property_mode = False
         self.last_saved = None
 
         self._tile_id = 0
+        self.chosen_property_index = 0
 
         self.open(name)
 
@@ -120,7 +138,7 @@ class EditorTileMap:
         world = []
 
         for tile in self.tiles:
-            world.append({"x": tile.x, "y": tile.y, "sheet_name": tile.sheet_name, "sheet_pos": tile.sheet_location})
+            world.append({"x": tile.x, "y": tile.y, "props": tile.property,"sheet_name": tile.sheet_name, "sheet_pos": tile.sheet_location})
 
         data["world"] = world
 
@@ -151,7 +169,7 @@ class EditorTileMap:
             self.tiles.empty()
 
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"], self._tile_id))
+                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["property"], self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"], self._tile_id))
                 self._tile_id += 1
 
             print(f"Loaded world: {name}")
@@ -183,6 +201,7 @@ class EditorTileMap:
                     else:
                         self.offset += 0.2
 
+
         self.game.event_check.append(detect_scroll)
 
         if self.erase_mode:
@@ -194,21 +213,37 @@ class EditorTileMap:
         if key[pygame.K_RIGHT]:
             self.offset += self.tile_size / 2
 
-
         shift_press = key[pygame.K_LSHIFT] or key[pygame.K_RSHIFT]
         tile_shift = 0
         if shift_press:
             tile_shift = 1
 
+        if not self.property_mode or not self.erase_mode:
+            if key_just[pygame.K_LEFTBRACKET]:
+                self.selected_tile[tile_shift] -= 1
+                if self.selected_tile[tile_shift] < 0:
+                    self.selected_tile[tile_shift] = 0
 
-        if key_just[pygame.K_LEFTBRACKET]:
-            self.selected_tile[tile_shift] -= 1
-            if self.selected_tile[tile_shift] < 0:
-                self.selected_tile[tile_shift] = 0
+            if key_just[pygame.K_RIGHTBRACKET]:
+                self.selected_tile[tile_shift] += 1
 
-        if key_just[pygame.K_RIGHTBRACKET]:
-            self.selected_tile[tile_shift] += 1
+            if mouse[1]:
+                for sprite in pygame.sprite.spritecollide(self.cursor, self.tiles, False):
+                    if sprite.cursor or not isinstance(sprite, Tile):
+                        continue
+                    self.selected_tile = sprite.sheet_location
+                    self.chosen_property_index = available_props.index(sprite.property)
 
+        if self.property_mode:
+            if key_just[pygame.K_LEFTBRACKET]:
+                self.chosen_property_index -= 1
+                if self.chosen_property_index < 0:
+                    self.chosen_property_index = len(available_props) - 1
+
+            if key_just[pygame.K_RIGHTBRACKET]:
+                self.chosen_property_index += 1
+                if self.chosen_property_index >= len(available_props):
+                    self.chosen_property_index = 0
 
         if key_just[pygame.K_s]:
             self.save(self.world_name)
@@ -220,6 +255,9 @@ class EditorTileMap:
         if key_just[pygame.K_e]:
             self.erase_mode = not self.erase_mode
 
+        if key_just[pygame.K_p]:
+            self.property_mode = not self.property_mode
+
         if self.game.screen.get_height() != self.window_height or self.game.screen.get_width() != self.window_width:
             self.window_height = self.game.screen.get_height()
             self.window_width = self.game.screen.get_width()
@@ -227,11 +265,15 @@ class EditorTileMap:
             self.world_width = round(self.window_width / (self.tile_size * self.scale))
 
 
-        if mouse[0] and not self.erase_mode:
-            self.tiles.add(Tile(self, x, y, self.scale, self.tilesheets[self.selected_sheet], self.selected_sheet, self.selected_tile, self._tile_id))
+        if mouse[0] and not self.erase_mode and not self.property_mode:
+            self.tiles.add(Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
+                                self.tilesheets[self.selected_sheet],
+                                self.selected_sheet, self.selected_tile, self._tile_id))
             self._tile_id += 1
 
-        tile_cursor = Tile(self, x, y, self.scale, self.tilesheets[self.selected_sheet], self.selected_sheet, self.selected_tile, -1,["cursor"])
+        tile_cursor = Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
+                           self.tilesheets[self.selected_sheet], self.selected_sheet,
+                           self.selected_tile, -1, ["cursor"])
         tile_cursor.update()
         self.cursor = tile_cursor
 
@@ -240,10 +282,13 @@ class EditorTileMap:
     def render(self, screen: pygame.Surface):
         self.tiles.draw(screen)
         self.game.screen.blit(self.cursor.image, [self.cursor.rect.x, self.cursor.rect.y])
-        self.game.font.render_to(screen, (10, 10), f"World File: {self.world_name}.json", (255, 255, 255))
+        self.game.font.render_to(screen, (10, 10), f"World File: {self.world_name}.json     Selected Property: {available_props[self.chosen_property_index]}", (255, 255, 255))
 
         if self.erase_mode:
             self.game.font.render_to(screen, (10, 40), f"ERASE", (255, 0, 0))
+
+        if self.property_mode:
+            self.game.font.render_to(screen, (90, 40), f"Property Mode", (0, 200, 0))
 
         if self.last_saved:
             text = f"Last saved {self.last_saved}"

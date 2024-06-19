@@ -44,13 +44,15 @@ class Player(Entity):
 
         if key[pygame.K_LEFT]:
             self.rect.x -= self.speed
-            if self.collides_with_tiles():
-                self.rect.x = self.colliding_tile.rect.x + self.colliding_tile.rect.width
+            for tile in self.collides_with_tiles():
+                self.rect.x = tile.rect.x + self.colliding_tile.rect.width
+                break
 
         if key[pygame.K_RIGHT]:
             self.rect.x += self.speed
-            if self.collides_with_tiles():
-                self.rect.x = self.colliding_tile.rect.x - self.rect.width
+            for tile in self.collides_with_tiles():
+                self.rect.x = tile.rect.x - self.rect.width
+                break
 
         if (key_down[pygame.K_SPACE] or key_down[pygame.K_UP]) and self.jump_duration < self.jump_max_duration:
             self.jump()
@@ -73,15 +75,15 @@ class Player(Entity):
 
             self.rect.y += self.vel_y
 
-            if self.collides_with_tiles():
-                self.rect.y = self.colliding_tile.rect.y + self.colliding_tile.rect.height
+            for tile in self.collides_with_tiles():
+                self.rect.y = tile.rect.y + tile.rect.height
                 self.jump_duration = self.jump_max_duration
         else:
             self.vel_y = 0
             self.rect.y += self.gravity
 
-        if self.collides_with_tiles():
-            self.rect.y = self.colliding_tile.rect.y - self.rect.height
+        for tile in self.collides_with_tiles():
+            self.rect.y = tile.rect.y - self.rect.height
             self.is_jumping = False
             self.jump_duration = 0
 
@@ -96,13 +98,18 @@ class Player(Entity):
         if self.rect.y > self.game.tile_map.window_height:
             self.game.set_game_state(3)
 
-
-
+        if key[pygame.K_k]:
+            self.game.set_game_state(3)
 
     def collides_with_tiles(self):
-        for tile in self.game.tile_map.tiles:
-            if self.rect.colliderect(tile.rect):
-                self.colliding_tile = tile
+        def check_property(tile):
+            if tile.property == "solid":
                 return True
-        self.colliding_tile = None
-        return False
+            elif tile.property == "hazard":
+                self.game.set_game_state(3)
+                return False
+            return False
+
+
+        tiles = pygame.sprite.spritecollide(self, self.game.tile_map.tiles, False)
+        return filter(check_property, tiles)
