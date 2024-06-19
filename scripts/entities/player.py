@@ -36,9 +36,9 @@ class Player(Entity):
             self.is_jumping = True
             self.vel_y = -self.max_vel_y
             self.jump_start = pygame.time.get_ticks()
+            self.jump_duration = 0
 
 
-    # TODO: Bug when swimming
     def update(self):
         key = pygame.key.get_pressed()
         key_up = pygame.key.get_just_released()
