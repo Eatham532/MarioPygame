@@ -34,6 +34,7 @@ class Game:
         }
 
         self.active_sprite_list = pygame.sprite.Group()
+        self.player_dead = False
 
         self.clock = pygame.time.Clock()
 
@@ -44,6 +45,10 @@ class Game:
 
         # A variable to check to prevent the player from accidentally starting a new game
         self.game_over_dt = None
+
+
+    def kill_player(self):
+        self.player_dead = True
 
     def set_game_state(self, state: int):
         match state:
@@ -76,6 +81,7 @@ class Game:
                 if keys[pygame.K_SPACE]:
                     self.game_state = GameState.PLAYING
                     self.tile_map.open(self.world_name)
+                    self.player_dead = False
 
                 if keys[pygame.K_q]:
                     running = False

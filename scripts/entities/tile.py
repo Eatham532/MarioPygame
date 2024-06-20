@@ -45,6 +45,9 @@ class Tile(pygame.sprite.Sprite):
         offset = self.tilemap.offset
         self.rect.x = (self.x * self.size) + offset
 
+        if self.rect.x < -self.rect.width or self.rect.x > self.tilemap.window_width + self.rect.width:
+            return
+
         tile_size = 16
         self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
                                                    self.sheet_location[1] * tile_size * self.scale, self.size,

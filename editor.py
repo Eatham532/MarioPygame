@@ -5,8 +5,6 @@ import pygame.freetype
 import json
 import datetime
 
-from scripts.utils.color import hsl_to_rgb
-
 available_props = ["solid", "background", "hazard", "water"]
 
 class Tile(pygame.sprite.Sprite):
@@ -47,12 +45,13 @@ class Tile(pygame.sprite.Sprite):
             if sprite.x == x and sprite.y == y and not self.cursor and not sprite.cursor and sprite.id != self.id:
                 sprite.kill()
 
-
-
     def update(self):
         self.offset = self.tilemap.offset
         self.rect.x = (self.x * self.size) + self.offset
         self.rect.y = (self.y * self.size)
+
+        if self.rect.x < -self.rect.width or self.rect.x > self.tilemap.window_width + self.rect.width:
+            return
 
         tile_size = 16
 
@@ -70,8 +69,11 @@ class Tile(pygame.sprite.Sprite):
                     self.image.fill((0, 0, 255))
 
         else:
-            self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
-                                                       self.sheet_location[1] * tile_size * self.scale, self.size, self.size))
+            if self.cursor and self.tilemap.erase_mode:
+                pass
+            else:
+                self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
+                                                           self.sheet_location[1] * tile_size * self.scale, self.size, self.size))
 
         pos = pygame.mouse.get_pos()
         mouse = pygame.mouse.get_pressed()
