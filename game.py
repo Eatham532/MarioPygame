@@ -37,12 +37,15 @@ class Game:
         self.player_dead = False
 
         self.clock = pygame.time.Clock()
+        self.music_playing = False
+        self.music_mute = False
 
         self.tile_map = TileMap(self)
 
         self.world_name = "world"
         self.game_state = GameState.HOME
 
+        self.dt = 0
         # A variable to check to prevent the player from accidentally starting a new game
         self.game_over_dt = None
 
@@ -61,7 +64,8 @@ class Game:
     def run(self):
         running = True
         clock = pygame.time.Clock()
-        dt = 0
+
+        pygame.mixer.music.load("./assets/audio/ground_theme.mp3")
 
 
         while running:
@@ -87,9 +91,19 @@ class Game:
                     running = False
 
             elif self.game_state == GameState.PLAYING:
+                if not self.music_playing:
+                    pygame.mixer.music.play()
+                    self.music_playing = True
+
                 self.active_sprite_list.update()
                 self.tile_map.update()
 
+            if pygame.key.get_just_pressed()[pygame.K_m]:
+                self.music_mute = not self.music_mute
+                if self.music_mute:
+                    pygame.mixer.music.set_volume(0)
+                else:
+                    pygame.mixer.music.set_volume(100)
 
             if self.game_state == GameState.PLAYING or self.game_state == GameState.PAUSED:
                 self.tile_map.render(self.screen)
@@ -100,6 +114,10 @@ class Game:
 
 
             if self.game_state == GameState.GAME_OVER:
+                if self.music_playing:
+                    pygame.mixer.music.stop()
+                    self.music_playing = False
+
                 self.font["large"].render_to(self.screen, [10, 10], f"Game Over", (255, 0, 0))
                 self.font["medium"].render_to(self.screen, [10, 40], f"Press SPACE to restart", (255, 255, 255))
                 self.font["medium"].render_to(self.screen, [10, 70], f"Press Q to quit", (255, 255, 255))
@@ -108,7 +126,7 @@ class Game:
                                              f"Credits: Ethan Condren", (255, 255, 255))
 
                 if self.game_over_dt is None:
-                    self.game_over_dt = int(dt)
+                    self.game_over_dt = int(self.dt)
 
                 keys = pygame.key.get_just_pressed()
                 if keys[pygame.K_SPACE]:
@@ -122,7 +140,7 @@ class Game:
 
             pygame.display.update()
 
-            dt += clock.tick(60) / 1000
+            self.dt += clock.tick(60) / 1000
 
 
 Game().run()
