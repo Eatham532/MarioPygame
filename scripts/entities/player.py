@@ -98,12 +98,11 @@ class Player(Entity):
 
                 # if key[pygame.K_SPACE] or key[pygame.K_UP]:
                 #     self.jump()
+            if key[pygame.K_DOWN]:
+                self.rect.y += self.gravity * 1.5
 
             self.vel_y = 0
             self.rect.y += self.gravity
-
-        if key[pygame.K_DOWN]:
-            self.rect.y += self.gravity * 1.5
 
         touching_water = False
         tile_collisions = self.check_collisions()
