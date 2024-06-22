@@ -41,7 +41,7 @@ class TileMap(pygame.sprite.Group):
             if file.endswith(".png"):
                 path = os.path.join(tilesheets_path, file)
                 image = pygame.image.load(path)
-                scaled_image = pygame.transform.scale_by(image, self.scale)
+                scaled_image = pygame.transform.scale_by(image, self.scale).convert_alpha()
                 self.tilesheets[file.strip(".png")] = scaled_image
 
         self.game = game
@@ -51,6 +51,7 @@ class TileMap(pygame.sprite.Group):
 
 
     def render(self, screen):
+        self.game.screen.fill((148, 148, 255))
         self.tiles.draw(screen)
 
 
