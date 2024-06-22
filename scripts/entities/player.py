@@ -118,7 +118,7 @@ class Player(Entity):
 
 
             if self.vel_y < 0:
-                self.game.audio["smb_bump"].play()
+                self.game.play_effect("smb_bump")
                 if tile.rect.x < self.rect.centerx < tile.rect.x + tile.rect.width or len(tile_collisions) == 1:
                     tile.hit_below()
                 elif self.rect.x == tile.rect.centerx and not hit:

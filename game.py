@@ -51,7 +51,7 @@ class Game:
 
         self.clock = pygame.time.Clock()
         self.music_playing = False
-        self.music_mute = False
+        self.audio_mute = False
 
         self.tile_map = TileMap(self)
 
@@ -107,12 +107,15 @@ class Game:
                     pygame.mixer.music.play()
                     self.music_playing = True
 
+                if not pygame.mixer.music.get_busy():
+                    pygame.mixer.music.play()
+
                 self.active_sprite_list.update()
                 self.tile_map.update()
 
             if pygame.key.get_just_pressed()[pygame.K_m]:
-                self.music_mute = not self.music_mute
-                if self.music_mute:
+                self.audio_mute = not self.audio_mute
+                if self.audio_mute:
                     pygame.mixer.music.set_volume(0)
                 else:
                     pygame.mixer.music.set_volume(100)
@@ -153,6 +156,10 @@ class Game:
             pygame.display.update()
 
             self.dt += clock.tick(60) / 1000
+
+    def play_effect(self, name: str):
+        if not self.audio_mute:
+            self.audio[name].play()
 
 
 Game().run()
