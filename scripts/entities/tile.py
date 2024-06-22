@@ -22,7 +22,7 @@ class Tile(pygame.sprite.Sprite):
         self.tilemap = tilemap
         self.scale = scale
         self.size = tilemap.tile_size * self.scale
-        self.image = pygame.Surface([self.size, self.size])
+        self.image = pygame.Surface([self.size, self.size], pygame.SRCALPHA)
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
@@ -48,9 +48,8 @@ class Tile(pygame.sprite.Sprite):
         if self.rect.x < -self.rect.width or self.rect.x > self.tilemap.window_width + self.rect.width:
             return
 
-        tile_size = 16
-        self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
-                                                   self.sheet_location[1] * tile_size * self.scale, self.size,
+        self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * self.size,
+                                                   self.sheet_location[1] * self.size, self.size,
                                                    self.size))
 
         if self.tilemap.outline_tiles:
