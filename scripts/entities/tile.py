@@ -1,3 +1,5 @@
+import time
+
 import pygame
 
 
@@ -29,6 +31,11 @@ class Tile(pygame.sprite.Sprite):
         self.property = p
         self.tags = tags
 
+        self.bounce = False
+        self.bounce_start_time = None
+        self.bounce_time = 100
+        self.can_bounce = not self.bounce
+
         if sheet_location is None:
             sheet_location = [0, 0]
         else: sheet_location = [sheet_location[0], sheet_location[1]]
@@ -48,6 +55,24 @@ class Tile(pygame.sprite.Sprite):
         if self.rect.x < -self.rect.width or self.rect.x > self.tilemap.window_width + self.rect.width:
             return
 
+        if self.bounce:
+            if self.bounce_start_time == None:
+                self.bounce_start_time = time.time()
+
+            if (time.time() - self.bounce_start_time) * 1000 <= self.bounce_time:
+                self.rect.y -= 2
+
+            else:
+                self.rect.y += 2
+
+                if self.rect.y >= self.y * self.size:
+                    self.rect.y = self.y * self.size
+                    self.bounce = False
+                    self.bounce_start_time = None
+
+
+
+
         self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * self.size,
                                                    self.sheet_location[1] * self.size, self.size,
                                                    self.size))
@@ -55,3 +80,15 @@ class Tile(pygame.sprite.Sprite):
         if self.tilemap.outline_tiles:
             rect = create_bordered_rect(self.size, self.size, 1, (0, 0, 0), (255, 255, 255))
             self.image.blit(rect, (0, 0))
+
+    def hit_below(self):
+        if "hazard" == self.property:
+            self.tilemap.game.kill_player()
+
+        if "boing" == self.property:
+            self.bounce = True
+
+
+    def hit_above(self):
+        if "hazard" == self.property:
+            self.tilemap.game.kill_player()

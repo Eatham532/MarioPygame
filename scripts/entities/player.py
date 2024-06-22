@@ -4,14 +4,16 @@ from scripts.entities.entity import Entity
 
 
 class Player(Entity):
-    def __init__(self, game, speed=10):
+    def __init__(self, game, speed=10, scale=3):
         super().__init__()
 
         # Sprite
-        width = 60
-        height = 60
+        width = 16 * scale
+        height = 16 * scale
         self.image = pygame.Surface([width, height])
         self.image.fill((255, 0, 0))
+
+        self.health = 1
 
         # Movement
         self.rect = self.image.get_rect()
@@ -38,15 +40,21 @@ class Player(Entity):
             self.jump_start = pygame.time.get_ticks()
             self.jump_duration = 0
 
-
     def update(self):
+        if self.health <= 0:
+            if self.kill_animation:
+                pass
+            else:
+                self.kill_dt = self.game.dt
+                self.kill_animation = True
+
         key = pygame.key.get_pressed()
         key_up = pygame.key.get_just_released()
         key_down = pygame.key.get_just_pressed()
 
         if self.in_water:
             self.vel_y = -self.speed
-            self.gravity = self.speed * 0.2
+            self.gravity = self.speed * 0.4
 
         else:
             self.max_vel_y = self.speed * 2
@@ -55,9 +63,6 @@ class Player(Entity):
         dx = -self.speed if key[pygame.K_LEFT] else self.speed if key[pygame.K_RIGHT] else 0
         self.rect.x += dx
         for tile in self.check_collisions():
-            if tile.property == "hazard":
-                self.game.set_game_state(3)
-
             if tile.property == "water" or tile.property == "background":
                 continue
 
@@ -101,10 +106,9 @@ class Player(Entity):
             self.rect.y += self.gravity * 1.5
 
         touching_water = False
-        for tile in self.check_collisions():
-            if tile.property == "hazard":
-                self.game.set_game_state(3)
-
+        tile_collisions = self.check_collisions()
+        hit = False
+        for tile in tile_collisions:
             if tile.property == "background":
                 continue
 
@@ -112,14 +116,25 @@ class Player(Entity):
                 touching_water = True
                 continue
 
-            if self.vel_y > 0:
+
+            if self.vel_y < 0:
+                self.game.audio["smb_bump"].play()
+                if tile.rect.x < self.rect.centerx < tile.rect.x + tile.rect.width or len(tile_collisions) == 1:
+                    tile.hit_below()
+                elif self.rect.x == tile.rect.centerx and not hit:
+                    tile.hit_below()
+                    hit = True
+
                 self.rect.y = tile.rect.y + tile.rect.height
                 self.jump_duration = self.jump_max_duration
-
             else:
+                tile.hit_above()
                 self.rect.y = tile.rect.y - self.rect.height
                 self.is_jumping = False
                 self.jump_duration = 0
+
+        del tile_collisions
+        del hit
 
         self.in_water = touching_water
 
@@ -140,8 +155,6 @@ class Player(Entity):
     def check_collisions(self):
         def check_property(tile):
             if tile.property in ["solid", "hazard", "water"]:
-                if tile.property == "hazard":
-                    self.game.set_game_state(3)
                 return True
             return False
 

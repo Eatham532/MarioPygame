@@ -5,7 +5,7 @@ import pygame.freetype
 import json
 import datetime
 
-available_props = ["solid", "background", "hazard", "water"]
+available_props = ["solid", "boing", "background", "hazard", "water"]
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tilemap, x, y, scale, p, sheet_image, sheet_name, sheet_location=None, id=0, tags=[]):
@@ -61,6 +61,8 @@ class Tile(pygame.sprite.Sprite):
             match self.property:
                 case "solid":
                     self.image.fill((0, 255, 0))
+                case "boing":
+                    self.image.fill((255, 255, 0))
                 case "background":
                     self.image.fill((170, 50, 180))
                 case "hazard":
@@ -114,6 +116,12 @@ class EditorTileMap:
                 image = pygame.image.load(path)
                 scaled_image = pygame.transform.scale_by(image, self.scale)
                 self.tilesheets[file.strip(".png")] = scaled_image
+
+            elif file.endswith(".bmp"):
+                path = os.path.join(tilesheets_path, file)
+                image = pygame.image.load(path)
+                scaled_image = pygame.transform.scale_by(image, self.scale)
+                self.tilesheets[file.strip(".bmp")] = scaled_image
 
         self.selected_sheet = list(self.tilesheets.keys())[0]
         self.selected_tile = [0, 0]
@@ -194,14 +202,14 @@ class EditorTileMap:
             if event.type == pygame.MOUSEWHEEL:
                 if event.y > 0 or event.x > 0:  # Scroll Up
                     if shift:
-                        self.offset -= 1
+                        self.offset -= 0.5
                     else:
-                        self.offset -= 0.2
+                        self.offset -= 0.1
                 elif event.y < 0 or event.x < 0:  # Scroll Down
                     if shift:
-                        self.offset += 1
+                        self.offset += 0.5
                     else:
-                        self.offset += 0.2
+                        self.offset += 0.1
 
 
         self.game.event_check.append(detect_scroll)
@@ -216,9 +224,7 @@ class EditorTileMap:
             self.offset += self.tile_size / 2
 
         shift_press = key[pygame.K_LSHIFT] or key[pygame.K_RSHIFT]
-        tile_shift = 0
-        if shift_press:
-            tile_shift = 1
+        tile_shift = 1 if shift_press else 0
 
         if not self.property_mode or not self.erase_mode:
             if key_just[pygame.K_LEFTBRACKET]:
@@ -302,6 +308,7 @@ class EditorTileMap:
 class Editor:
     def __init__(self):
         pygame.init()
+        pygame.display.set_caption('Editor')
         self.screen = pygame.display.set_mode([1000, 800])
         self.font = pygame.freetype.SysFont("roboto", 24)
         self.dt = None
@@ -329,7 +336,7 @@ class Editor:
             self.tile_map.render(self.screen)
 
             pygame.display.update()
-            self.dt = clock.tick(60) / 1000
+            self.dt += clock.tick(60)
 
 
 Editor().run()

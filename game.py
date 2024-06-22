@@ -33,6 +33,19 @@ class Game:
             "large": GetFont(36),
         }
 
+        audio_files = os.listdir('./assets/audio')
+
+        # Create a dictionary to store the audio files
+        self.audio = {}
+
+        # Load each audio file
+        for file in audio_files:
+            # Get the file name without the extension
+            name = os.path.splitext(file)[0]
+            # Load the audio file and store it in the dictionary
+            self.audio[name] = pygame.mixer.Sound(f'./assets/audio/{file}')
+
+
         self.active_sprite_list = pygame.sprite.Group()
         self.player_dead = False
 
@@ -65,8 +78,7 @@ class Game:
         running = True
         clock = pygame.time.Clock()
 
-        pygame.mixer.music.load("./assets/audio/ground_theme.mp3")
-
+        pygame.mixer.music.load('./assets/music/ground_theme.mp3')
 
         while running:
             for event in pygame.event.get():
