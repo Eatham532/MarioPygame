@@ -106,6 +106,7 @@ class Game:
                 if not self.music_playing:
                     pygame.mixer.music.play()
                     self.music_playing = True
+                    self.game_over_dt = None
 
                 if not pygame.mixer.music.get_busy():
                     pygame.mixer.music.play()
@@ -143,19 +144,18 @@ class Game:
                 if self.game_over_dt is None:
                     self.game_over_dt = int(self.dt)
 
-                keys = pygame.key.get_just_pressed()
-                if keys[pygame.K_SPACE]:
-                    self.game_state = GameState.PLAYING
-                    self.tile_map.open(self.world_name)
+                if self.dt - self.game_over_dt >= 500:
+                    keys = pygame.key.get_just_pressed()
+                    if keys[pygame.K_SPACE]:
+                        self.game_state = GameState.PLAYING
+                        self.tile_map.open(self.world_name)
 
-                if keys[pygame.K_q]:
-                    running = False
-
-
+                    if keys[pygame.K_q]:
+                        running = False
 
             pygame.display.update()
 
-            self.dt += clock.tick(60) / 1000
+            self.dt += clock.tick(60)
 
     def play_effect(self, name: str):
         if not self.audio_mute:

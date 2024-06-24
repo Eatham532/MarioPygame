@@ -102,8 +102,8 @@ class Player(Entity):
             self.vel_y = 0
             self.rect.y += self.gravity
 
-        if key[pygame.K_DOWN]:
-            self.rect.y += self.gravity * 1.5
+            if key[pygame.K_DOWN]:
+                self.rect.y += self.gravity * 1.5
 
         touching_water = False
         tile_collisions = self.check_collisions()

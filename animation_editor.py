@@ -198,7 +198,7 @@ class Viewer:
         dump = {"animations": {}}
         dump["animations"][self.animation_name] = {"frames": [], "direction": self.animation_mode}
         for frame in self.frames:
-            dump["animations"][self.animation_name]["frames"].append({"image": {"sheet_name": frame.image.sheet_name, "x": frame.image.x, "y": frame.image.y}, "duration": frame.duration})
+            dump["animations"][self.animation_name.strip(".png")]["frames"].append({"image": {"sheet_name": frame.image.sheet_name, "x": frame.image.x, "y": frame.image.y}, "duration": frame.duration})
 
         with open(path, "w") as f:
             json.dump(dump, f)

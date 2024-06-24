@@ -6,6 +6,7 @@ import random
 
 from scripts.entities.player import Player
 from scripts.entities.tile import Tile
+from scripts.utils.special import get_special_tile_info, get_special_tile_class
 
 
 class TileMap(pygame.sprite.Group):
@@ -77,7 +78,14 @@ class TileMap(pygame.sprite.Group):
             # Create the game
             self.tiles.empty()
             for tile in data["world"]:
-                self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, tile["props"], self.tilesheets[tile["sheet_name"]], tile["sheet_name"], tile["sheet_pos"]))
+                if tile["special_tile"]:
+                    c = get_special_tile_class(tile["sheet_name"])
+                    c_ = c(self, tile["x"], tile["y"], self.scale, tile["props"])
+                    self.tiles.add(c_)
+                else:
+                    self.tiles.add(
+                        Tile(self, tile["x"], tile["y"], self.scale, tile["props"], self.tilesheets[tile["sheet_name"]],
+                             tile["sheet_name"], tile["sheet_pos"]))
 
             self.player.__init__(self.game)
 
