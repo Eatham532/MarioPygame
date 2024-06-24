@@ -13,6 +13,7 @@ A recreation of the classic Mario game using Pygame.
 - `Left Click` to place a cube
 - `E` to enable erase mode. Use `Left Click` to erase cubes
 - `P` to enable property mode. Use `Left Click` to change the properties of a tile
+- `T` to access special tiles. `[` and `]` to cycle through the special tiles
 - `S` to save the level
 - `O` to open a level. Use the python terminal to input the level name
 - `[` to move left along the tile sheet
