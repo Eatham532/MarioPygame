@@ -1,0 +1,1 @@
+{"animations": {"animation": {"frames": [{"image": {"sheet_name": "tiles", "x": 7, "y": 14}, "duration": 500}, {"image": {"sheet_name": "tiles", "x": 8, "y": 14}, "duration": 100}, {"image": {"sheet_name": "tiles", "x": 9, "y": 14}, "duration": 100}], "direction": 0}}}

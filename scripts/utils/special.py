@@ -1,13 +1,16 @@
 import importlib
 import json
 
+from scripts.animations import Animatable
 
-def get_special_tile_info(tilemap, file):
+def get_special_tile_dummy_class(tilemap, file):
     info = get_special_tile_class(file)
 
-    tile = info(tilemap, 0, 0, tilemap.scale, "normal")
+    return info(tilemap, 0, 0, tilemap.scale, "normal")
 
-    j = open(tile._animatable_path, "r")
+def get_animatable_class_info(tilemap, file):
+    tile: Animatable = get_special_tile_dummy_class(tilemap, file)
+    j = open(tile.get_path(), "r")
 
     return json.load(j)
 

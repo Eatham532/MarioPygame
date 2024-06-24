@@ -52,6 +52,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.music_playing = False
         self.audio_mute = False
+        self.coins = 0
 
         self.tile_map = TileMap(self)
 
@@ -98,6 +99,7 @@ class Game:
                     self.game_state = GameState.PLAYING
                     self.tile_map.open(self.world_name)
                     self.player_dead = False
+                    self.coins = 0
 
                 if keys[pygame.K_q]:
                     running = False
@@ -127,11 +129,12 @@ class Game:
                 self.font["medium"].render_to(self.screen, [20, 20], f"Mario Pygame {version}", (255, 255, 255))
                 self.font["small"].render_to(self.screen, [20, 50], f"World name: {self.tile_map.world_name}", (255, 255, 255))
                 self.font["medium"].render_to(self.screen, [self.screen.get_width() - 100, 20], f"FPS: {round(clock.get_fps())}", (255, 255, 255))
-
+                self.font["small"].render_to(self.screen, [20, 80], f"Coins: {self.coins}", (255, 255, 255))
 
             if self.game_state == GameState.GAME_OVER:
                 if self.music_playing:
                     pygame.mixer.music.stop()
+                    self.play_effect("smb_gameover")
                     self.music_playing = False
 
                 self.font["large"].render_to(self.screen, [10, 10], f"Game Over", (255, 0, 0))
@@ -149,6 +152,7 @@ class Game:
                     if keys[pygame.K_SPACE]:
                         self.game_state = GameState.PLAYING
                         self.tile_map.open(self.world_name)
+                        self.coins = 0
 
                     if keys[pygame.K_q]:
                         running = False

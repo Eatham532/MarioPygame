@@ -66,6 +66,8 @@ class Player(Entity):
             if tile.property == "water" or tile.property == "background":
                 continue
 
+
+
             if dx < 0:
                 self.rect.x = tile.rect.x + tile.rect.width
             elif dx > 0:
@@ -115,9 +117,12 @@ class Player(Entity):
                 touching_water = True
                 continue
 
+            if tile.property == "collectable":
+                tile.hit_below()
+                continue
+
 
             if self.vel_y < 0:
-                self.game.play_effect("smb_bump")
                 if tile.rect.x < self.rect.centerx < tile.rect.x + tile.rect.width or len(tile_collisions) == 1:
                     tile.hit_below()
                 elif self.rect.x == tile.rect.centerx and not hit:

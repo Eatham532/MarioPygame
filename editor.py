@@ -7,7 +7,7 @@ import json
 import datetime
 import scripts
 import scripts.entities.special_tiles
-from scripts.utils.special import get_special_tile_info
+from scripts.utils.special import get_animatable_class_info, get_special_tile_class, get_special_tile_dummy_class
 
 available_props = ["solid", "boing", "background", "hazard", "water"]
 
@@ -42,7 +42,6 @@ class Tile(pygame.sprite.Sprite):
 
         self.special_tile = "special_tile" in tags
         if self.special_tile:
-            print("Special")
             tags.remove("special_tile")
 
 
@@ -86,30 +85,21 @@ class Tile(pygame.sprite.Sprite):
                 self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
                                                            self.sheet_location[1] * tile_size * self.scale, self.size, self.size))
 
-
-        if self.special_tile and not self.cursor:
+        if self.special_tile and not (self.tilemap.erase_mode and self.cursor):
             self.tilemap.game.font.render_to(self.image, (0, 0), "S", (255, 255, 255))
 
         pos = pygame.mouse.get_pos()
         mouse = pygame.mouse.get_pressed()
 
         if mouse[0] and not self.cursor and self.has_init:
-            if self.special_tile:
-                print("Hey")
             if self.rect.collidepoint(pos):
                 if self.tilemap.property_mode:
                     self.property = available_props[self.tilemap.chosen_property_index]
-                    print(self.property)
                 else:
                     self.kill()
 
         if not mouse[0] and not self.has_init:
             self.has_init = True
-
-        if self.special_tile and mouse[0]:
-            print(self.cursor)
-            print(self.id)
-            print("Special Hey")
 
 
 class EditorTileMap:
@@ -151,18 +141,29 @@ class EditorTileMap:
         files = os.listdir("./scripts/entities/special_tiles")
         for file in files:
             if file.endswith(".py"):
-                animation_info_json = get_special_tile_info(self, file)
+                info = get_special_tile_dummy_class(self, file)
+                if isinstance(info, scripts.animations.Animatable):
+                    _file = open(info.get_path(), "r")
+                    j = json.load(_file)
+                    animation_info_group = j["animations"]
+                    animation_info = animation_info_group[list(animation_info_group.keys())[0]]["frames"][0]["image"]
 
-                animation_info_group = animation_info_json["animations"]
-                animation_info = animation_info_group[list(animation_info_group.keys())[0]]["frames"][0]["image"]
+                    self.special_tiles[file.strip(".json")] = {
+                        "name": file,
+                        "sheet_image": self.tilesheets[animation_info["sheet_name"]],
+                        "sheet_name": animation_info["sheet_name"],
+                        "x": animation_info["x"],
+                        "y": animation_info["y"],
+                    }
+                elif isinstance(info, scripts.entities.tile.Tile):
+                    self.special_tiles[file.strip(".json")] = {
+                        "name": file,
+                        "sheet_image": self.tilesheets[info.sheet_name],
+                        "sheet_name": info.sheet_name,
+                        "x": info.sheet_location[0],
+                        "y": info.sheet_location[1],
+                    }
 
-                self.special_tiles[file.strip(".json")] = {
-                                                               "name": file,
-                                                               "sheet_image": self.tilesheets[animation_info["sheet_name"]],
-                                                               "sheet_name": animation_info["sheet_name"],
-                                                               "x": animation_info["x"],
-                                                               "y": animation_info["y"],
-                                                           }
 
 
 
@@ -225,7 +226,6 @@ class EditorTileMap:
 
             for tile in data["world"]:
                 if tile["special_tile"]:
-                    print("Special FOund")
                     mod = self.special_tiles[tile["sheet_name"]]
 
                     self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, available_props[self.chosen_property_index],
@@ -293,12 +293,19 @@ class EditorTileMap:
                 if key_just[pygame.K_RIGHTBRACKET]:
                     self.selected_tile[tile_shift] += 1
 
-                if mouse[1]:
-                    for sprite in pygame.sprite.spritecollide(self.cursor, self.tiles, False):
-                        if sprite.cursor or not isinstance(sprite, Tile):
-                            continue
+            if mouse[1]:
+                for sprite in pygame.sprite.spritecollide(self.cursor, self.tiles, False):
+                    if sprite.cursor or not isinstance(sprite, Tile):
+                        continue
+
+                    if not self.property_mode:
                         self.selected_tile = [sprite.sheet_location[0], sprite.sheet_location[1]]
-                        self.chosen_property_index = available_props.index(sprite.property)
+                        self.special_tiles_mode = sprite.special_tile
+
+                        if self.special_tiles_mode:
+                            self.selected_special_tile = list(self.special_tiles.keys()).index(sprite.sheet_name)
+
+                    self.chosen_property_index = available_props.index(sprite.property)
 
             elif self.property_mode:
                 if key_just[pygame.K_LEFTBRACKET]:
@@ -347,7 +354,6 @@ class EditorTileMap:
 
         if mouse[0] and not self.erase_mode and not self.property_mode:
             if self.special_tiles_mode:
-                print("Special_tiles")
                 mod = self.special_tiles[list(self.special_tiles.keys())[self.selected_special_tile]]
 
                 self.tiles.add(Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
@@ -388,6 +394,9 @@ class EditorTileMap:
 
         if self.property_mode:
             self.game.font.render_to(screen, (90, 40), f"Property Mode", (0, 200, 0))
+
+        if self.special_tiles_mode:
+            self.game.font.render_to(screen, (10, 70), f"Special Tiles Mode. Using: {list(self.special_tiles.keys())[self.selected_special_tile]}", (100, 150, 200))
 
         if self.last_saved:
             text = f"Last saved {self.last_saved}"

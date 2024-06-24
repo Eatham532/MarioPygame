@@ -25,6 +25,7 @@ class Tile(pygame.sprite.Sprite):
         self.scale = scale
         self.size = tilemap.tile_size * self.scale
         self.image = pygame.Surface([self.size, self.size], pygame.SRCALPHA)
+        self.image.set_colorkey((1,1,1))
         self.rect = self.image.get_rect()
         self.x = x
         self.y = y
@@ -72,7 +73,7 @@ class Tile(pygame.sprite.Sprite):
 
 
 
-
+        self.image.fill((1,1,1))
         self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * self.size,
                                                    self.sheet_location[1] * self.size, self.size,
                                                    self.size))
@@ -84,11 +85,19 @@ class Tile(pygame.sprite.Sprite):
     def hit_below(self):
         if "hazard" == self.property:
             self.tilemap.game.kill_player()
+            return
 
         if "boing" == self.property:
             self.bounce = True
+
+        self.play_hit_sound()
 
 
     def hit_above(self):
         if "hazard" == self.property:
             self.tilemap.game.kill_player()
+            return
+
+
+    def play_hit_sound(self):
+        self.tilemap.game.play_effect("smb_bump")

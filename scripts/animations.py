@@ -95,6 +95,10 @@ class Animatable:
         self._current_animation: Animation | None = None
 
 
+    def get_path(self):
+        return self._animatable_path
+
+
     def open(self, path=None):
         if path is not None:
             self._animatable_path = path
