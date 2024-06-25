@@ -10,14 +10,17 @@ from scripts.entities.player import Player
 
 version = "Beta 0.0.1"
 
+
 class GameState(Enum):
     HOME = 0
     PLAYING = 1
     PAUSED = 2
     GAME_OVER = 3
 
-def GetFont(size: int):
+
+def get_font(size: int):
     return pygame.freetype.SysFont("roboto", size)
+
 
 class Game:
     def __init__(self):
@@ -28,9 +31,9 @@ class Game:
         pygame.display.set_caption('Mario Pygame')
         self.screen = pygame.display.set_mode([1000, 800])
         self.font = {
-            "small": GetFont(16),
-            "medium": GetFont(24),
-            "large": GetFont(36),
+            "small": get_font(16),
+            "medium": get_font(24),
+            "large": get_font(36),
         }
 
         audio_files = os.listdir('./assets/audio')
@@ -86,8 +89,12 @@ class Game:
                 if event.type == pygame.QUIT:
                     running = False
 
+            # Clear the screen
             self.screen.fill((0, 0, 0))
 
+            '''
+            Check the game state and render the appropriate screen
+            '''
             if self.game_state == GameState.HOME:
                 self.font["medium"].render_to(self.screen, (10, 10), f"Press SPACE to start", (255, 255, 255))
                 self.font["medium"].render_to(self.screen, (10, 40), f"Press Q to quit", (255, 255, 255))

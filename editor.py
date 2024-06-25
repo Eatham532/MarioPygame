@@ -84,6 +84,9 @@ class Tile(pygame.sprite.Sprite):
                                                            self.sheet_location[1] * tile_size * self.scale, self.size,
                                                            self.size))
 
+        '''
+        Render letters if the tile is not normal
+        '''
         if self.tilesheet_mode == 1 and not (self.tilemap.erase_mode and self.cursor):
             self.tilemap.game.font.render_to(self.image, (0, 0), "S", (255, 255, 255))
 

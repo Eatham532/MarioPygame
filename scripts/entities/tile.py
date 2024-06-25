@@ -2,7 +2,9 @@ import time
 
 import pygame
 
-
+'''
+This function makes the rectangle with the border around it so that you can see the individual tiles
+'''
 def create_bordered_rect(width, height, border_thickness, fill_color, border_color):
     # Create a surface with extra space for the border
     surf = pygame.Surface((width + border_thickness * 2, height + border_thickness * 2), pygame.SRCALPHA)
@@ -35,7 +37,6 @@ class Tile(pygame.sprite.Sprite):
         self.bounce = False
         self.bounce_start_time = None
         self.bounce_time = 100
-        self.can_bounce = not self.bounce
 
         if sheet_location is None:
             sheet_location = [0, 0]

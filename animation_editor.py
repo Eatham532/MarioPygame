@@ -8,9 +8,7 @@ from scripts.animations import *
 '''
 TODO: 
 
-- Change animation mode
 - Allow the ability to add multiple animations
-- Chose animation save location
 '''
 
 animation_mode_options = ["Normal", "Forward", "Backward", "Alternate", "Alternate Reverse"]
@@ -43,6 +41,9 @@ class AnimationViewer(pygame.sprite.Sprite, Animatable):
         self.open("./animation.json")
 
 
+'''
+A sprite that runs the animation
+'''
 class ViewerFrame(pygame.sprite.Sprite):
     def __init__(self, tilesheet, viewer, image: Image, scale=1):
         super().__init__()
@@ -67,9 +68,9 @@ class ViewerFrame(pygame.sprite.Sprite):
                                              self.viewer.tilesheet_y * self.size, self.size, self.size))
 
 
-
-
-
+'''
+A sprite the represents the current frame of an animation
+'''
 class Viewer:
     def __init__(self, editor, tilesheet_name, scale=20):
         path = os.path.join("./assets/tilesheets", tilesheet_name)
@@ -128,27 +129,29 @@ class Viewer:
             if key_just[pygame.K_RIGHTBRACKET]:
                 self.tilesheet_x += 1
 
+        '''
+        Key Press events
+        '''
         if key_just[pygame.K_n]:
             self.current_frame_id += 1
             self.frames.insert(self.current_frame_id, Frame(Image(self.tilesheet_name, self.tilesheet_x, self.tilesheet_y), 1000))
             self.current_frame_duration = self.frames[self.current_frame_id].duration
 
-        if key_just[pygame.K_RIGHT]:
+        elif key_just[pygame.K_RIGHT]:
             self.current_frame_id += 1
             if self.current_frame_id >= len(self.frames):
                 self.current_frame_id = 0
 
             self.update_frame_info()
 
-        if key_just[pygame.K_LEFT]:
+        elif key_just[pygame.K_LEFT]:
             self.current_frame_id -= 1
             if self.current_frame_id < 0:
                 self.current_frame_id = len(self.frames) - 1
 
             self.update_frame_info()
 
-
-        if key_just[pygame.K_MINUS]:
+        elif key_just[pygame.K_MINUS]:
             self.current_frame_duration -= 100
 
         elif key_just[pygame.K_EQUALS]:
@@ -181,6 +184,9 @@ class Viewer:
                 self.animation_mode = len(animation_mode_options) - 1
 
 
+        '''
+        Update Visuals
+        '''
         self.frames[self.current_frame_id].duration = self.current_frame_duration
         self.frames[self.current_frame_id].image = Image(self.tilesheet_name, self.tilesheet_x, self.tilesheet_y)
 
@@ -189,8 +195,6 @@ class Viewer:
 
         self.previewGroup.update(self.editor.dt)
         self.previewGroup.draw(self.editor.screen)
-
-        pass
 
     def save(self, path="./animation.json"):
         if not os.path.exists("./assets/animations"):
