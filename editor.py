@@ -10,7 +10,7 @@ import scripts.entities.special_tiles
 from scripts.utils.class_management import get_animatable_class_info, get_special_tile_class, get_special_tile_dummy_class, get_enemy_dummy_class, get_enemy_class
 
 available_props = ["solid", "boing", "background", "hazard", "water"]
-tilesheet_modes = ["tiles", "special", "enemies"]
+tilesheet_modes = ["normal", "special", "enemy"]
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tilemap, x, y, scale, p, sheet_image, sheet_name, sheet_location=None, id=0, tilesheet_mode=0, tags=[]):
@@ -42,7 +42,6 @@ class Tile(pygame.sprite.Sprite):
             tags.remove("cursor")
 
         self.tilesheet_mode = tilesheet_mode
-
 
         self.tags = tags
 
@@ -231,6 +230,7 @@ class EditorTileMap:
         self.last_saved = datetime.datetime.now().strftime("%H:%M:%S")
         json.dump([data], f)
         f.close()
+        print("Saved Successfully")
 
     def open(self, name):
         with open(f'./assets/worlds/{name}.json', 'a+') as f:
@@ -255,23 +255,25 @@ class EditorTileMap:
 
             for tile in data["world"]:
                 match tile["tile_type"]:
-                    case "tile":
+                    case "normal":
                         self.tiles.add(
                             Tile(self, tile["x"], tile["y"], self.scale, tile["props"],
                                  self.tilesheets[tile["sheet_name"]],
                                  tile["sheet_name"], tile["sheet_pos"], self._tile_id))
-                    case "special_tile":
+                    case "special":
                         mod = self.special_tiles[tile["sheet_name"]]
 
                         self.tiles.add(
-                            Tile(self, tile["x"], tile["y"], self.scale, available_props[self.chosen_property_index],
+                            Tile(self, tile["x"], tile["y"], self.scale, tile["props"],
                                  mod["sheet_image"], mod["name"],
-                                 [mod["x"], mod["y"]], -1, 1))
+                                 [mod["x"], mod["y"]], self._tile_id, 1))
                     case "enemy":
+                        mod = self.enemies_group[tile["sheet_name"]]
+
                         self.tiles.add(
                             Tile(self, tile["x"], tile["y"], self.scale, tile["props"],
-                                 self.tilesheets[tile["sheet_name"]],
-                                 tile["sheet_name"], tile["sheet_pos"], self._tile_id, 2))
+                                 mod["sheet_image"], mod["name"],
+                                 [mod["x"], mod["y"]], self._tile_id, 2))
 
                 self._tile_id += 1
 
