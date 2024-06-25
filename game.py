@@ -106,7 +106,6 @@ class Game:
 
             elif self.game_state == GameState.PLAYING:
                 if not self.music_playing:
-                    pygame.mixer.stop()
                     pygame.mixer.music.play()
                     self.music_playing = True
                     self.game_over_dt = None
