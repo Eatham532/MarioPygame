@@ -5,20 +5,16 @@ from scripts.entities.entity import Entity
 
 class Player(Entity):
     def __init__(self, game, speed=10, scale=3):
-        super().__init__()
 
         # Sprite
         width = 16 * scale
         height = 16 * scale
-        self.image = pygame.Surface([width, height])
-        self.image.fill((255, 0, 0))
+        super().__init__(game, 400, 300, pygame.Surface([width, height]))
 
+        self.image.fill((255, 0, 0))
         self.health = 1
 
         # Movement
-        self.rect = self.image.get_rect()
-        self.rect.x = 400
-        self.rect.y = 300
         self.speed = speed
 
         # Jumping
@@ -31,23 +27,15 @@ class Player(Entity):
         self.jump_max_duration = 200
         self.in_water = False
 
-        self.game = game
-
     def jump(self):
         if not self.is_jumping or self.in_water:
             self.is_jumping = True
             self.vel_y = -self.max_vel_y
             self.jump_start = pygame.time.get_ticks()
             self.jump_duration = 0
+            self.game.play_effect("smb_jump-small")
 
-    def update(self):
-        if self.health <= 0:
-            if self.kill_animation:
-                pass
-            else:
-                self.kill_dt = self.game.dt
-                self.kill_animation = True
-
+    def move(self):
         key = pygame.key.get_pressed()
         key_up = pygame.key.get_just_released()
         key_down = pygame.key.get_just_pressed()
@@ -66,18 +54,14 @@ class Player(Entity):
             if tile.property == "water" or tile.property == "background":
                 continue
 
-
-
             if dx < 0:
                 self.rect.x = tile.rect.x + tile.rect.width
             elif dx > 0:
                 self.rect.x = tile.rect.x - self.rect.width
 
-
         if (key_down[pygame.K_SPACE] or key_down[pygame.K_UP]) and (
                 self.jump_duration < self.jump_max_duration or self.in_water):
             self.jump()
-
 
         if (self.is_jumping and self.jump_duration < self.jump_max_duration):
             self.jump_duration = pygame.time.get_ticks() - self.jump_start
@@ -85,7 +69,6 @@ class Player(Entity):
             if key[pygame.K_SPACE] or key[pygame.K_UP]:
                 if self.jump_duration < self.jump_max_duration / 2:
                     self.vel_y += self.max_vel_y / 20
-
             else:
                 self.jump_duration *= 2
 
@@ -121,7 +104,6 @@ class Player(Entity):
                 tile.hit_below()
                 continue
 
-
             if self.vel_y < 0:
                 if tile.rect.x < self.rect.centerx < tile.rect.x + tile.rect.width or len(tile_collisions) == 1:
                     tile.hit_below()
@@ -152,6 +134,18 @@ class Player(Entity):
 
         if self.rect.y > self.game.tile_map.window_height:
             self.game.set_game_state(3)
+
+    def update(self):
+        if self.health <= 0:
+            if self.kill_animation:
+                pass
+            else:
+                self.kill_dt = self.game.dt
+                self.kill_animation = True
+
+        key = pygame.key.get_pressed()
+
+        self.move()
 
         if key[pygame.K_k]:
             self.game.set_game_state(3)

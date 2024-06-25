@@ -89,8 +89,8 @@ class Viewer:
         self.frames.append(Frame(Image(self.tilesheet_name, self.tilesheet_x, self.tilesheet_x), 1000))
         self.current_frame_duration = self.frames[self.current_frame_id].duration
 
-        self.animation_name = "animation"
-        self.animation_set_name = "animation"
+        self.animation_name = "paragoomba"
+        self.animation_set_name = "walk"
         self._animatable_path = "./animation.json"
         self.editor = editor
         self.last_saved = None
@@ -291,7 +291,7 @@ class AnimationEditor:
         self.dt = None
         self.event_check = []
 
-        self.viewer = Viewer(self, "tiles.png")
+        self.viewer = Viewer(self, "enemies.png")
 
 
     def run(self):

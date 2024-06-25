@@ -22,3 +22,17 @@ def get_special_tile_class(file):
     info = getattr(info, mod_name)
 
     return info
+
+def get_enemy_dummy_class(tilemap, file):
+    info = get_enemy_class(file)
+
+    return info(tilemap, 0, 0, tilemap.scale)
+
+def get_enemy_class(file):
+    module_name = f'./enemies/{file}'.replace('/', '.').rstrip('.py')
+    mod_name = [e.capitalize() for e in file.split("_")]
+    mod_name = "".join(mod_name).rstrip('.py')
+    info = importlib.import_module(module_name, package="scripts.entities.enemies")
+    info = getattr(info, mod_name)
+
+    return info

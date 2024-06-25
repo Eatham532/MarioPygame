@@ -7,12 +7,13 @@ import json
 import datetime
 import scripts
 import scripts.entities.special_tiles
-from scripts.utils.special import get_animatable_class_info, get_special_tile_class, get_special_tile_dummy_class
+from scripts.utils.class_management import get_animatable_class_info, get_special_tile_class, get_special_tile_dummy_class, get_enemy_dummy_class, get_enemy_class
 
 available_props = ["solid", "boing", "background", "hazard", "water"]
+tilesheet_modes = ["tiles", "special", "enemies"]
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tilemap, x, y, scale, p, sheet_image, sheet_name, sheet_location=None, id=0, tags=[]):
+    def __init__(self, tilemap, x, y, scale, p, sheet_image, sheet_name, sheet_location=None, id=0, tilesheet_mode=0, tags=[]):
         super().__init__()
 
         self.tilemap = tilemap
@@ -40,9 +41,7 @@ class Tile(pygame.sprite.Sprite):
         if self.cursor:
             tags.remove("cursor")
 
-        self.special_tile = "special_tile" in tags
-        if self.special_tile:
-            tags.remove("special_tile")
+        self.tilesheet_mode = tilesheet_mode
 
 
         self.tags = tags
@@ -83,10 +82,14 @@ class Tile(pygame.sprite.Sprite):
                 pass
             else:
                 self.image.blit(self.sheet_image, (0, 0), (self.sheet_location[0] * tile_size * self.scale,
-                                                           self.sheet_location[1] * tile_size * self.scale, self.size, self.size))
+                                                           self.sheet_location[1] * tile_size * self.scale, self.size,
+                                                           self.size))
 
-        if self.special_tile and not (self.tilemap.erase_mode and self.cursor):
+        if self.tilesheet_mode == 1 and not (self.tilemap.erase_mode and self.cursor):
             self.tilemap.game.font.render_to(self.image, (0, 0), "S", (255, 255, 255))
+
+        elif self.tilesheet_mode == 2 and not (self.tilemap.erase_mode and self.cursor):
+            self.tilemap.game.font.render_to(self.image, (0, 0), "E", (255, 255, 255))
 
         pos = pygame.mouse.get_pos()
         mouse = pygame.mouse.get_pressed()
@@ -105,19 +108,23 @@ class Tile(pygame.sprite.Sprite):
 class EditorTileMap:
     def __init__(self, game, tile_size=16, name="world", tilesheets_path="./assets/tilesheets/"):
         self.tile_size = tile_size
-        self.offset = 0
         self.game = game
 
+        # Window stuff
         self.scale = 3
         self.window_height = self.game.screen.get_height()
         self.window_width = self.game.screen.get_width()
         self.world_height = round(self.window_height / (self.tile_size * self.scale))
         self.world_width = round(self.window_width / (self.tile_size * self.scale))
         self.world_name = name
+        self.offset = 0
 
-        self.tiles = pygame.sprite.Group()
-        self.cursor = None
+        self.tiles = pygame.sprite.Group()  # A group to hold all the tiles
+        self.cursor = None  # A variable to hold the cursor sprite for positioning
 
+        '''
+        Load all the tilesheets
+        '''
         files = os.listdir(tilesheets_path)
         self.tilesheets = {}
         for file in files:
@@ -133,9 +140,9 @@ class EditorTileMap:
                 scaled_image = pygame.transform.scale_by(image, self.scale)
                 self.tilesheets[file.strip(".bmp")] = scaled_image
 
-        self.selected_sheet = list(self.tilesheets.keys())[0]
-        self.selected_tile = [0, 0]
-
+        '''
+        Locate all the special tile class files
+        '''
         self.special_tiles: {{}} = {}
         self.selected_special_tile = 0
         files = os.listdir("./scripts/entities/special_tiles")
@@ -164,16 +171,42 @@ class EditorTileMap:
                         "y": info.sheet_location[1],
                     }
 
+        '''
+        Locate all the enemy class files
+        '''
+        self.enemies_group: {{}} = {}
+        self.selected_enemy_index = 0
+        files = os.listdir("./scripts/entities/enemies")
+        for file in files:
+            if file.endswith(".py"):
+                info = get_enemy_dummy_class(self, file)
+                if isinstance(info, scripts.entities.enemy.Enemy) and isinstance(info, scripts.animations.Animatable):
+                    _file = open(info.get_path(), "r")
+                    j = json.load(_file)
+                    animation_info_group = j["animations"]
+                    animation_info = animation_info_group[list(animation_info_group.keys())[0]]["frames"][0]["image"]
 
+                    self.enemies_group[file.strip(".json")] = {
+                        "name": file,
+                        "sheet_image": self.tilesheets[animation_info["sheet_name"]],
+                        "sheet_name": animation_info["sheet_name"],
+                        "x": animation_info["x"],
+                        "y": animation_info["y"],
+                    }
 
-
+        # The different modes
         self.erase_mode = False
         self.property_mode = False
-        self.special_tiles_mode = False
-        self.last_saved = None
-
-        self._tile_id = 0
         self.chosen_property_index = 0
+        self.tilesheet_mode = 0
+
+        # Selected variables
+        self.selected_sheet = list(self.tilesheets.keys())[0]
+        self.selected_tile = [0, 0]
+        self.selected_sheet_index = 0
+
+        self._tile_id = 0  # Tile id is used to check collisions
+        self.last_saved = None  # The last time the world was saved
 
         self.open(name)
 
@@ -190,12 +223,8 @@ class EditorTileMap:
         world = []
 
         for tile in self.tiles:
-            if tile.special_tile:
-                world.append({"x": tile.x, "y": tile.y, "props": tile.property, "sheet_name": tile.sheet_name,
-                              "sheet_pos": tile.sheet_location, "special_tile": True})
-            else:
-                world.append({"x": tile.x, "y": tile.y, "props": tile.property, "sheet_name": tile.sheet_name,
-                              "sheet_pos": tile.sheet_location, "special_tile": False})
+            world.append({"x": tile.x, "y": tile.y, "props": tile.property, "sheet_name": tile.sheet_name,
+                          "sheet_pos": tile.sheet_location, "tile_type": tilesheet_modes[tile.tilesheet_mode]})
 
         data["world"] = world
 
@@ -225,17 +254,24 @@ class EditorTileMap:
             self.tiles.empty()
 
             for tile in data["world"]:
-                if tile["special_tile"]:
-                    mod = self.special_tiles[tile["sheet_name"]]
+                match tile["tile_type"]:
+                    case "tile":
+                        self.tiles.add(
+                            Tile(self, tile["x"], tile["y"], self.scale, tile["props"],
+                                 self.tilesheets[tile["sheet_name"]],
+                                 tile["sheet_name"], tile["sheet_pos"], self._tile_id))
+                    case "special_tile":
+                        mod = self.special_tiles[tile["sheet_name"]]
 
-                    self.tiles.add(Tile(self, tile["x"], tile["y"], self.scale, available_props[self.chosen_property_index],
-                                       mod["sheet_image"], mod["name"],
-                                       [mod["x"], mod["y"]], -1, ["special_tile"]))
-
-                else:
-                    self.tiles.add(
-                        Tile(self, tile["x"], tile["y"], self.scale, tile["props"], self.tilesheets[tile["sheet_name"]],
-                             tile["sheet_name"], tile["sheet_pos"], self._tile_id))
+                        self.tiles.add(
+                            Tile(self, tile["x"], tile["y"], self.scale, available_props[self.chosen_property_index],
+                                 mod["sheet_image"], mod["name"],
+                                 [mod["x"], mod["y"]], -1, 1))
+                    case "enemy":
+                        self.tiles.add(
+                            Tile(self, tile["x"], tile["y"], self.scale, tile["props"],
+                                 self.tilesheets[tile["sheet_name"]],
+                                 tile["sheet_name"], tile["sheet_pos"], self._tile_id, 2))
 
                 self._tile_id += 1
 
@@ -271,9 +307,6 @@ class EditorTileMap:
 
         self.game.event_check.append(detect_scroll)
 
-        if self.erase_mode:
-            pass
-
         if key[pygame.K_LEFT]:
             self.offset -= self.tile_size / 2
 
@@ -282,9 +315,32 @@ class EditorTileMap:
 
         shift_press = key[pygame.K_LSHIFT] or key[pygame.K_RSHIFT]
         tile_shift = 1 if shift_press else 0
+        self.selected_sheet = list(self.tilesheets.keys())[self.selected_sheet_index]
 
-        if not self.erase_mode:
-            if not self.property_mode and not self.special_tiles_mode:
+        '''
+        Tile Shifting
+        '''
+        if not self.erase_mode:  # Only shift tiles if not erasing
+            if mouse[1]:  # Middle mouse button
+                for sprite in pygame.sprite.spritecollide(self.cursor, self.tiles, False):
+                    if sprite.cursor or not isinstance(sprite, Tile):
+                        continue
+
+                    if not self.property_mode:
+                        self.selected_tile = [sprite.sheet_location[0], sprite.sheet_location[1]]
+                        if sprite.special_tile:
+                            self.tilesheet_mode = 1
+                        elif sprite.enemy:
+                            self.tilesheet_mode = 2
+                        else:
+                            self.tilesheet_mode = 0
+
+                        if self.tilesheet_mode:
+                            self.selected_special_tile = list(self.special_tiles.keys()).index(sprite.sheet_name)
+
+                    self.chosen_property_index = available_props.index(sprite.property)
+
+            elif not self.property_mode and self.tilesheet_mode == 0:  # Shift normal tilesheet index
                 if key_just[pygame.K_LEFTBRACKET]:
                     self.selected_tile[tile_shift] -= 1
                     if self.selected_tile[tile_shift] < 0:
@@ -293,21 +349,7 @@ class EditorTileMap:
                 if key_just[pygame.K_RIGHTBRACKET]:
                     self.selected_tile[tile_shift] += 1
 
-            if mouse[1]:
-                for sprite in pygame.sprite.spritecollide(self.cursor, self.tiles, False):
-                    if sprite.cursor or not isinstance(sprite, Tile):
-                        continue
-
-                    if not self.property_mode:
-                        self.selected_tile = [sprite.sheet_location[0], sprite.sheet_location[1]]
-                        self.special_tiles_mode = sprite.special_tile
-
-                        if self.special_tiles_mode:
-                            self.selected_special_tile = list(self.special_tiles.keys()).index(sprite.sheet_name)
-
-                    self.chosen_property_index = available_props.index(sprite.property)
-
-            elif self.property_mode:
+            elif self.property_mode:  # Shift property index
                 if key_just[pygame.K_LEFTBRACKET]:
                     self.chosen_property_index -= 1
                     if self.chosen_property_index < 0:
@@ -318,7 +360,7 @@ class EditorTileMap:
                     if self.chosen_property_index >= len(available_props):
                         self.chosen_property_index = 0
 
-            elif self.special_tiles_mode:
+            elif self.tilesheet_mode == 1:  # Shift special tile index
                 if key_just[pygame.K_LEFTBRACKET]:
                     self.selected_special_tile -= 1
                     if self.selected_special_tile < 0:
@@ -329,21 +371,52 @@ class EditorTileMap:
                     if self.selected_special_tile >= len(self.special_tiles):
                         self.selected_special_tile = 0
 
-        if key_just[pygame.K_s]:
+            elif self.tilesheet_mode == 2:  # Shift enemy index
+                if key_just[pygame.K_LEFTBRACKET]:
+                    self.selected_enemy_index -= 1
+                    if self.selected_enemy_index < 0:
+                        self.selected_enemy_index = len(self.enemies_group) - 1
+
+                if key_just[pygame.K_RIGHTBRACKET]:
+                    self.selected_enemy_index += 1
+                    if self.selected_enemy_index >= len(self.enemies_group):
+                        self.selected_enemy_index = 0
+
+            '''
+            Shift tilesheet
+            '''
+            if not self.property_mode and self.tilesheet_mode == 0:
+                if key_just[pygame.K_COMMA]:
+                    self.selected_sheet_index -= 1
+                    if self.selected_sheet_index < 0:
+                        self.selected_sheet_index = len(self.tilesheets) - 1
+
+                elif key_just[pygame.K_PERIOD]:
+                    self.selected_sheet_index += 1
+                    if self.selected_sheet_index >= len(self.tilesheets):
+                        self.selected_sheet_index = 0
+
+        '''
+        Single key press events
+        '''
+
+        if key_just[pygame.K_s]:  # Save
             self.save(self.world_name)
 
-        elif key_just[pygame.K_o]:
+        elif key_just[pygame.K_o]:  # Open
             name = input("Enter the name of the world: ")
             self.open(name)
 
-        elif key_just[pygame.K_e]:
+        elif key_just[pygame.K_e]:  # Erase mode
             self.erase_mode = not self.erase_mode
 
-        elif key_just[pygame.K_p]:
+        elif key_just[pygame.K_p]:  # Property mode
             self.property_mode = not self.property_mode
 
-        elif key_just[pygame.K_t]:
-            self.special_tiles_mode = not self.special_tiles_mode
+        elif key_just[pygame.K_t]:  # Tilesheet switch
+            self.tilesheet_mode += 1
+            if self.tilesheet_mode >= len(tilesheet_modes):
+                self.tilesheet_mode = 0
 
         if self.game.screen.get_height() != self.window_height or self.game.screen.get_width() != self.window_width:
             self.window_height = self.game.screen.get_height()
@@ -351,15 +424,23 @@ class EditorTileMap:
             self.world_height = round(self.window_height / (self.tile_size * self.scale))
             self.world_width = round(self.window_width / (self.tile_size * self.scale))
 
-
+        '''
+        Mouse down event
+        '''
         if mouse[0] and not self.erase_mode and not self.property_mode:
-            if self.special_tiles_mode:
+            if self.tilesheet_mode == 1:
                 mod = self.special_tiles[list(self.special_tiles.keys())[self.selected_special_tile]]
 
                 self.tiles.add(Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
                                     mod["sheet_image"], mod["name"],
-                                    [mod["x"], mod["y"]], self._tile_id,
-                                    ["special_tile"]))
+                                    [mod["x"], mod["y"]], self._tile_id,1))
+
+            elif self.tilesheet_mode == 2:
+                mod = self.enemies_group[list(self.enemies_group.keys())[self.selected_enemy_index]]
+
+                self.tiles.add(Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
+                                    mod["sheet_image"], mod["name"],
+                                    [mod["x"], mod["y"]], self._tile_id, 2))
 
             else:
                 self.tiles.add(Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
@@ -367,18 +448,31 @@ class EditorTileMap:
                                     self.selected_sheet, self.selected_tile, self._tile_id))
             self._tile_id += 1
 
-        if self.special_tiles_mode:
+        '''
+        Create the cursor
+        '''
+        if self.tilesheet_mode == 1:
             mod = self.special_tiles[list(self.special_tiles.keys())[self.selected_special_tile]]
 
             tile_cursor = Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
                                mod["sheet_image"], mod["name"],
-                               [mod["x"], mod["y"]], -1, ["cursor", "special_tile"])
+                               [mod["x"], mod["y"]], -1, 1, ["cursor"])
             tile_cursor.update()
             self.cursor = tile_cursor
+
+        elif self.tilesheet_mode == 2:
+            mod = self.enemies_group[list(self.enemies_group.keys())[self.selected_enemy_index]]
+
+            tile_cursor = Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
+                               mod["sheet_image"], mod["name"],
+                               [mod["x"], mod["y"]], -1, 2, ["cursor"])
+            tile_cursor.update()
+            self.cursor = tile_cursor
+
         else:
             tile_cursor = Tile(self, x, y, self.scale, available_props[self.chosen_property_index],
                                self.tilesheets[self.selected_sheet], self.selected_sheet,
-                               self.selected_tile, -1, ["cursor"])
+                               self.selected_tile, -1, tags=["cursor"])
             tile_cursor.update()
             self.cursor = tile_cursor
 
@@ -395,8 +489,15 @@ class EditorTileMap:
         if self.property_mode:
             self.game.font.render_to(screen, (90, 40), f"Property Mode", (0, 200, 0))
 
-        if self.special_tiles_mode:
-            self.game.font.render_to(screen, (10, 70), f"Special Tiles Mode. Using: {list(self.special_tiles.keys())[self.selected_special_tile]}", (100, 150, 200))
+        match self.tilesheet_mode:
+            case 1:
+                self.game.font.render_to(screen, (10, 70), f"Special Tiles Mode. Using: {list(self.special_tiles.keys())[self.selected_special_tile]}", (100, 150, 200))
+            case 2:
+                self.game.font.render_to(screen, (10, 70), f"Enemy Mode. Using: {list(self.enemies_group.keys())[self.selected_enemy_index]}", (150, 150, 150))
+            case _:
+                self.game.font.render_to(screen, (10, 70),
+                                 f"Normal Mode: {list(self.tilesheets.keys())[self.selected_sheet_index]}",
+                                 (218,112,214))
 
         if self.last_saved:
             text = f"Last saved {self.last_saved}"

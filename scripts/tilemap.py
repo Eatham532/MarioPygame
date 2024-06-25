@@ -6,7 +6,7 @@ import random
 
 from scripts.entities.player import Player
 from scripts.entities.tile import Tile
-from scripts.utils.special import get_animatable_class_info, get_special_tile_class
+from scripts.utils.class_management import get_animatable_class_info, get_special_tile_class
 
 
 class TileMap(pygame.sprite.Group):

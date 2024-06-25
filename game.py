@@ -93,7 +93,7 @@ class Game:
                 self.font["medium"].render_to(self.screen, (10, 40), f"Press Q to quit", (255, 255, 255))
                 self.font["small"].render_to(self.screen,
                                              [10, self.screen.get_height() - 24],
-                                             f"Credits: Ethan Condren", (255, 255, 255))
+                                             f"Credits: Eatham532", (255, 255, 255))
                 keys = pygame.key.get_just_pressed()
                 if keys[pygame.K_SPACE]:
                     self.game_state = GameState.PLAYING
@@ -142,7 +142,7 @@ class Game:
                 self.font["medium"].render_to(self.screen, [10, 70], f"Press Q to quit", (255, 255, 255))
                 self.font["small"].render_to(self.screen,
                                              [10, self.screen.get_height() - 24],
-                                             f"Credits: Ethan Condren", (255, 255, 255))
+                                             f"Credits: Eatham532", (255, 255, 255))
 
                 if self.game_over_dt is None:
                     self.game_over_dt = int(self.dt)
