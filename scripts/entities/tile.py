@@ -84,7 +84,7 @@ class Tile(pygame.sprite.Sprite):
 
     def hit_below(self):
         if "hazard" == self.property:
-            self.tilemap.game.kill_player()
+            self.tilemap.player.health = -1
             return
 
         if "boing" == self.property:

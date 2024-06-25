@@ -4,15 +4,17 @@ from scripts.entities.entity import Entity
 
 
 class Player(Entity):
-    def __init__(self, game, speed=10, scale=3):
+    def __init__(self, tilemap, speed=10, scale=3):
 
         # Sprite
         width = 16 * scale
         height = 16 * scale
-        super().__init__(game, 400, 300, pygame.Surface([width, height]))
+        super().__init__(tilemap, 400, 300, pygame.Surface([width, height]))
+        self.game = tilemap.game
 
         self.image.fill((255, 0, 0))
         self.health = 1
+        self.kill_animation = False
 
         # Movement
         self.speed = speed
@@ -51,6 +53,10 @@ class Player(Entity):
         dx = -self.speed if key[pygame.K_LEFT] else self.speed if key[pygame.K_RIGHT] else 0
         self.rect.x += dx
         for tile in self.check_collisions():
+            if tile.property == "enemy":
+                self.health -= 1
+                return
+
             if tile.property == "water" or tile.property == "background":
                 continue
 
@@ -111,37 +117,52 @@ class Player(Entity):
                     tile.hit_below()
                     hit = True
 
+                if tile.property == "enemy":
+                    self.health = -1
+
                 self.rect.y = tile.rect.y + tile.rect.height
                 self.jump_duration = self.jump_max_duration
             else:
-                tile.hit_above()
                 self.rect.y = tile.rect.y - self.rect.height
                 self.is_jumping = False
                 self.jump_duration = 0
+
+                if tile.property == "enemy":
+                    self.jump()
+
+                tile.hit_above()
+
+
 
         del tile_collisions
         del hit
 
         self.in_water = touching_water
 
-        if self.rect.x > (self.game.tile_map.window_width / 2):
-            self.game.tile_map.offset -= self.speed
+        if self.rect.x > (self.tilemap.window_width / 2):
+            self.tilemap.offset -= self.speed
             self.rect.x -= self.speed
 
         if self.rect.x < self.speed * 3:
-            self.game.tile_map.offset += self.speed
+            self.tilemap.offset += self.speed
             self.rect.x += self.speed
 
-        if self.rect.y > self.game.tile_map.window_height:
+        if self.rect.y > self.tilemap.window_height:
             self.game.set_game_state(3)
 
     def update(self):
         if self.health <= 0:
             if self.kill_animation:
-                pass
+                self.rect.y += 5
+
+                if self.rect.y >= self.tilemap.window_height:
+                    self.game.set_game_state(3)
+
+                return
             else:
-                self.kill_dt = self.game.dt
                 self.kill_animation = True
+                self.game.play_effect("smb_mariodie")
+                self.rect.y -= 300
 
         key = pygame.key.get_pressed()
 
@@ -152,9 +173,9 @@ class Player(Entity):
 
     def check_collisions(self):
         def check_property(tile):
-            if tile.property in ["solid", "hazard", "water"]:
+            if tile.property in ["solid", "hazard", "water", "enemy"]:
                 return True
             return False
 
-        tiles = pygame.sprite.spritecollide(self, self.game.tile_map.tiles, False)
+        tiles = pygame.sprite.spritecollide(self, self.tilemap.tiles, False)
         return tiles

@@ -6,12 +6,13 @@ import random
 
 from scripts.entities.player import Player
 from scripts.entities.tile import Tile
-from scripts.utils.class_management import get_animatable_class_info, get_special_tile_class
+from scripts.utils.class_management import get_animatable_class_info, get_special_tile_class, get_enemy_class
 
 
 class TileMap(pygame.sprite.Group):
     def __init__(self, game, tile_size=16):
         super().__init__()
+        self.game = game
 
         self.tile_size = tile_size
         self.offset = 0
@@ -28,7 +29,7 @@ class TileMap(pygame.sprite.Group):
 
         # The tiles
         self.tiles = pygame.sprite.Group()
-        self.player = Player(game)
+        self.player = Player(self)
         game.active_sprite_list.add(self.player)
 
         # Debugging
@@ -45,7 +46,6 @@ class TileMap(pygame.sprite.Group):
                 scaled_image = pygame.transform.scale_by(image, self.scale).convert_alpha()
                 self.tilesheets[file.strip(".png")] = scaled_image
 
-        self.game = game
 
     def update(self):
         self.tiles.update()
@@ -78,16 +78,22 @@ class TileMap(pygame.sprite.Group):
             # Create the game
             self.tiles.empty()
             for tile in data["world"]:
-                if tile["special_tile"]:
-                    c = get_special_tile_class(tile["sheet_name"])
-                    c_ = c(self, tile["x"], tile["y"], self.scale, tile["props"])
-                    self.tiles.add(c_)
-                else:
-                    self.tiles.add(
-                        Tile(self, tile["x"], tile["y"], self.scale, tile["props"], self.tilesheets[tile["sheet_name"]],
-                             tile["sheet_name"], tile["sheet_pos"]))
+                match tile["tile_type"]:
+                    case "normal":
+                        self.tiles.add(
+                            Tile(self, tile["x"], tile["y"], self.scale, tile["props"],
+                                 self.tilesheets[tile["sheet_name"]],
+                                 tile["sheet_name"], tile["sheet_pos"]))
+                    case "special":
+                        c = get_special_tile_class(tile["sheet_name"])
+                        c_ = c(self, tile["x"], tile["y"], self.scale, tile["props"])
+                        self.tiles.add(c_)
+                    case "enemy":
+                        c = get_enemy_class(tile["sheet_name"])
+                        c_ = c(self, tile["x"], tile["y"], self.scale)
+                        self.tiles.add(c_)
 
-            self.player.__init__(self.game)
+            self.player.__init__(self)
 
             print(f"Loaded world: {name}")
             print(f"Tile count: {len(self.tiles)}")
